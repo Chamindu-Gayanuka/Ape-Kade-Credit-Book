@@ -1,0 +1,15 @@
+{
+  "name": "අපේ කඩේ ණය පොත — Ape Kade Credit Book",
+  "short_name": "ණය පොත",
+  "description": "Secure digital credit book for Ape Kade",
+  "lang": "si-LK",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f5",
+  "theme_color": "#173b2a",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

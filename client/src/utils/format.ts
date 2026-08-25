@@ -1,0 +1,1 @@
+export const money=(n=0)=>new Intl.NumberFormat('en-LK',{style:'currency',currency:'LKR',minimumFractionDigits:2}).format(n).replace('LKR','Rs.');export const dateTime=(d?:string)=>d?new Intl.DateTimeFormat('en-LK',{dateStyle:'medium',timeStyle:'short'}).format(new Date(d)):'—';
