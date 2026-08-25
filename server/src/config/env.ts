@@ -15,4 +15,4 @@ if (!parsed.success) {
     console.error('Invalid environment configuration', parsed.error.flatten().fieldErrors);
     process.exit(1)
 }
-export const env = parsed.data;
+export const env = parsed.data as z.infer<typeof schema>;
