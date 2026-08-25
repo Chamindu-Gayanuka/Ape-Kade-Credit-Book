@@ -1,34 +1,197 @@
-@tailwind base;@tailwind components;@tailwind utilities;
-@layer base{body{@apply bg-[#f7f8f5] text-ink antialiased}input,select,textarea{@apply outline-none}button{@apply transition}}
-@layer components{.card{@apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft}.label{@apply mb-1.5 block text-sm font-semibold text-slate-700}.input{@apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm focus:border-forest-500 focus:ring-2 focus:ring-forest-100}.btn{@apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50}.btn-primary{@apply btn bg-forest-600 text-white hover:bg-forest-700}.btn-secondary{@apply btn border border-slate-300 bg-white hover:bg-slate-50}.badge{@apply inline-flex rounded-full px-2.5 py-1 text-xs font-bold}.th{@apply px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500}.td{@apply border-t border-slate-100 px-4 py-3 text-sm}}
-@layer utilities{
-  .dark body{background:#0a110e;color:#e7eee9}
-  .dark .card{border-color:#25342d;background:#111c18;box-shadow:0 8px 30px rgba(0,0,0,.2)}
-  .dark .input{border-color:#33463d;background:#0d1713;color:#e7eee9}
-  .dark .input::placeholder{color:#718078}
-  .dark .input:focus{border-color:#4f9b70;--tw-ring-color:#244b35}
-  .dark .label,.dark .text-slate-700{color:#c7d2cc}
-  .dark .btn-secondary{border-color:#34463e;background:#14211b;color:#e7eee9}
-  .dark .btn-secondary:hover{background:#1b2b24}
-  .dark .bg-white{background-color:#111c18}
-  .dark header{border-color:#25342d;background:rgba(17,28,24,.92)}
-  .dark .border-slate-200,.dark .border-slate-100{border-color:#25342d}
-  .dark .border-t{border-color:#25342d}
-  .dark .divide-y>:not([hidden])~:not([hidden]){border-color:#25342d}
-  .dark .text-slate-400{color:#829189}
-  .dark .text-slate-500{color:#9aaaa1}
-  .dark .text-slate-600{color:#b4c0ba}
-  .dark .bg-slate-50{background-color:#17231e}
-  .dark .hover\:bg-slate-50:hover{background-color:#1b2b24}
-  .dark .bg-forest-50{background-color:#172b21}
-  .dark .bg-emerald-50{background-color:#10281d}
-  .dark .bg-red-50{background-color:#32191a}
-  .dark .bg-amber-50{background-color:#302516}
-  .dark .bg-blue-50{background-color:#152438}
-  .dark .bg-rose-50{background-color:#311920}
-  .dark table thead{background:#0e1814}
-  .dark .td{border-color:#25342d}
-  .dark [class*="bg-[#f7f8f5]"]{background:#0a110e}
-  html,body,.card,.input,header,.btn-secondary{transition:background-color .2s ease,color .2s ease,border-color .2s ease}
+@tailwind base; @tailwind components; @tailwind utilities;
+@layer base {
+    body {
+        @apply bg-[#f7f8f5] text-ink antialiased
+    }
+
+    input, select, textarea {
+        @apply outline-none
+    }
+
+    button {
+        @apply transition
+    }
 }
-@media print{.no-print{display:none!important}.print-only{display:block!important}body{background:white!important;color:#17231d!important}.receipt{box-shadow:none!important;border:0!important;background:white!important;color:#17231d!important}}
+
+@layer components {
+    .card {
+        @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft
+    }
+
+    .label {
+        @apply mb-1.5 block text-sm font-semibold text-slate-700
+    }
+
+    .input {
+        @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm focus:border-forest-500 focus:ring-2 focus:ring-forest-100
+    }
+
+    .btn {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50
+    }
+
+    .btn-primary {
+        @apply btn bg-forest-600 text-white hover:bg-forest-700
+    }
+
+    .btn-secondary {
+        @apply btn border border-slate-300 bg-white hover:bg-slate-50
+    }
+
+    .badge {
+        @apply inline-flex rounded-full px-2.5 py-1 text-xs font-bold
+    }
+
+    .th {
+        @apply px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500
+    }
+
+    .td {
+        @apply border-t border-slate-100 px-4 py-3 text-sm
+    }
+}
+
+@layer utilities {
+    .dark body {
+        background: #0a110e;
+        color: #e7eee9
+    }
+
+    .dark .card {
+        border-color: #25342d;
+        background: #111c18;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, .2)
+    }
+
+    .dark .input {
+        border-color: #33463d;
+        background: #0d1713;
+        color: #e7eee9
+    }
+
+    .dark .input::placeholder {
+        color: #718078
+    }
+
+    .dark .input:focus {
+        border-color: #4f9b70;
+        --tw-ring-color: #244b35
+    }
+
+    .dark .label, .dark .text-slate-700 {
+        color: #c7d2cc
+    }
+
+    .dark .btn-secondary {
+        border-color: #34463e;
+        background: #14211b;
+        color: #e7eee9
+    }
+
+    .dark .btn-secondary:hover {
+        background: #1b2b24
+    }
+
+    .dark .bg-white {
+        background-color: #111c18
+    }
+
+    .dark header {
+        border-color: #25342d;
+        background: rgba(17, 28, 24, .92)
+    }
+
+    .dark .border-slate-200, .dark .border-slate-100 {
+        border-color: #25342d
+    }
+
+    .dark .border-t {
+        border-color: #25342d
+    }
+
+    .dark .divide-y > :not([hidden]) ~ :not([hidden]) {
+        border-color: #25342d
+    }
+
+    .dark .text-slate-400 {
+        color: #829189
+    }
+
+    .dark .text-slate-500 {
+        color: #9aaaa1
+    }
+
+    .dark .text-slate-600 {
+        color: #b4c0ba
+    }
+
+    .dark .bg-slate-50 {
+        background-color: #17231e
+    }
+
+    .dark .hover\:bg-slate-50:hover {
+        background-color: #1b2b24
+    }
+
+    .dark .bg-forest-50 {
+        background-color: #172b21
+    }
+
+    .dark .bg-emerald-50 {
+        background-color: #10281d
+    }
+
+    .dark .bg-red-50 {
+        background-color: #32191a
+    }
+
+    .dark .bg-amber-50 {
+        background-color: #302516
+    }
+
+    .dark .bg-blue-50 {
+        background-color: #152438
+    }
+
+    .dark .bg-rose-50 {
+        background-color: #311920
+    }
+
+    .dark table thead {
+        background: #0e1814
+    }
+
+    .dark .td {
+        border-color: #25342d
+    }
+
+    .dark [class*="bg-[#f7f8f5]"] {
+        background: #0a110e
+    }
+
+    html, body, .card, .input, header, .btn-secondary {
+        transition: background-color .2s ease, color .2s ease, border-color .2s ease
+    }
+}
+
+@media print {
+    .no-print {
+        display: none !important
+    }
+
+    .print-only {
+        display: block !important
+    }
+
+    body {
+        background: white !important;
+        color: #17231d !important
+    }
+
+    .receipt {
+        box-shadow: none !important;
+        border: 0 !important;
+        background: white !important;
+        color: #17231d !important
+    }
+}
