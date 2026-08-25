@@ -4,11 +4,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 30,
-      "includeFiles": "server/src/**"
+      "includeFiles": "server/dist/**"
     }
   },
+
   "rewrites": [
     {
       "source": "/api/:path*",
