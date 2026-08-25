@@ -1,1 +1,60 @@
-import {useEffect,useState} from 'react';import {CalendarDays,TrendingUp,HandCoins,Users} from 'lucide-react';import {BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer} from 'recharts';import {api} from '../services/api';import {money} from '../utils/format';import {PageTitle,Spinner} from '../components/UI';export default function Reports(){const [daily,setDaily]=useState<any>(null),[monthly,setMonthly]=useState<any>(null),[cats,setCats]=useState<any[]>([]);useEffect(()=>{Promise.all([api.get('/reports/daily'),api.get('/reports/monthly'),api.get('/reports/category')]).then(([a,b,c])=>{setDaily(a.data);setMonthly(b.data);setCats(c.data)})},[]);if(!daily)return <Spinner/>;const cards=[['Daily credit',money(daily.totalCredit),TrendingUp],['Daily payments',money(daily.totalPayments),HandCoins],['Outstanding',money(monthly.outstanding),CalendarDays],['Active debtors',monthly.activeDebtors,Users]];return <><PageTitle title="වාර්තා" subtitle="Reports calculated from actual MongoDB transactions"/><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([a,b,I]:any)=><div className="card" key={a}><I className="mb-4 text-forest-600"/><span className="text-sm text-slate-500">{a}</span><b className="mt-1 block text-2xl">{b}</b></div>)}</div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="card"><h2 className="font-extrabold">Category report</h2><p className="mb-4 text-xs text-slate-500">Active credit by category</p><div className="h-72"><ResponsiveContainer><BarChart data={cats}><CartesianGrid vertical={false}/><XAxis dataKey="name"/><YAxis/><Tooltip formatter={(v:any)=>money(v)}/><Bar dataKey="total" fill="#39825a" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></div></div><div className="card"><h2 className="mb-4 font-extrabold">Daily report</h2><dl className="divide-y">{[['Total credit',money(daily.totalCredit)],['Total payments',money(daily.totalPayments)],['Net credit',money(daily.netCredit)],['Credit transactions',daily.creditCount],['Payment transactions',daily.paymentCount]].map(([a,b])=><div className="flex justify-between py-4" key={a}><dt className="text-sm text-slate-500">{a}</dt><dd className="font-bold">{b}</dd></div>)}</dl></div></div><div className="card mt-4"><h2 className="mb-4 font-extrabold">Category details</h2><div className="overflow-x-auto"><table className="w-full"><thead><tr><th className="th">Category</th><th className="th">Transactions</th><th className="th">Total Credit</th></tr></thead><tbody>{cats.map(c=><tr key={c._id}><td className="td font-bold">{c.name}</td><td className="td">{c.count}</td><td className="td font-bold">{money(c.total)}</td></tr>)}</tbody></table></div></div></>}
+import {useEffect, useState} from 'react';
+import {CalendarDays, TrendingUp, HandCoins, Users} from 'lucide-react';
+import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from 'recharts';
+import {api} from '../services/api';
+import {money} from '../utils/format';
+import {PageTitle, Spinner} from '../components/UI';
+
+export default function Reports() {
+    const [daily, setDaily] = useState<any>(null), [monthly, setMonthly] = useState<any>(null), [cats, setCats] = useState<any[]>([]);
+    useEffect(() => {
+        Promise.all([api.get('/reports/daily'), api.get('/reports/monthly'), api.get('/reports/category')]).then(([a, b, c]) => {
+            setDaily(a.data);
+            setMonthly(b.data);
+            setCats(c.data)
+        })
+    }, []);
+    if (!daily) return <Spinner/>;
+    const cards = [['Daily credit', money(daily.totalCredit), TrendingUp], ['Daily payments', money(daily.totalPayments), HandCoins], ['Outstanding', money(monthly.outstanding), CalendarDays], ['Active debtors', monthly.activeDebtors, Users]];
+    return <><PageTitle title="වාර්තා" subtitle="Reports calculated from actual MongoDB transactions"/>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([a, b, I]: any) => <div className="card"
+                                                                                                      key={a}><I
+            className="mb-4 text-forest-600"/><span className="text-sm text-slate-500">{a}</span><b
+            className="mt-1 block text-2xl">{b}</b></div>)}</div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="card"><h2 className="font-extrabold">Category report</h2><p
+                className="mb-4 text-xs text-slate-500">Active credit by category</p>
+                <div className="h-72"><ResponsiveContainer><BarChart data={cats}><CartesianGrid vertical={false}/><XAxis
+                    dataKey="name"/><YAxis/><Tooltip formatter={(v: any) => money(v)}/><Bar dataKey="total"
+                                                                                            fill="#39825a"
+                                                                                            radius={[8, 8, 0, 0]}/></BarChart></ResponsiveContainer>
+                </div>
+            </div>
+            <div className="card"><h2 className="mb-4 font-extrabold">Daily report</h2>
+                <dl className="divide-y">{[['Total credit', money(daily.totalCredit)], ['Total payments', money(daily.totalPayments)], ['Net credit', money(daily.netCredit)], ['Credit transactions', daily.creditCount], ['Payment transactions', daily.paymentCount]].map(([a, b]) =>
+                    <div className="flex justify-between py-4" key={a}>
+                        <dt className="text-sm text-slate-500">{a}</dt>
+                        <dd className="font-bold">{b}</dd>
+                    </div>)}</dl>
+            </div>
+        </div>
+        <div className="card mt-4"><h2 className="mb-4 font-extrabold">Category details</h2>
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead>
+                    <tr>
+                        <th className="th">Category</th>
+                        <th className="th">Transactions</th>
+                        <th className="th">Total Credit</th>
+                    </tr>
+                    </thead>
+                    <tbody>{cats.map(c => <tr key={c._id}>
+                        <td className="td font-bold">{c.name}</td>
+                        <td className="td">{c.count}</td>
+                        <td className="td font-bold">{money(c.total)}</td>
+                    </tr>)}</tbody>
+                </table>
+            </div>
+        </div>
+    </>
+}

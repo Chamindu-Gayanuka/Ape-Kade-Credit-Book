@@ -1,2 +1,57 @@
-import {useState} from 'react';import {useNavigate} from 'react-router-dom';import {BookOpen,Eye,EyeOff,LoaderCircle} from 'lucide-react';import {useAuth} from '../contexts/AuthContext';import {message} from '../services/api';import ThemeToggle from '../components/ThemeToggle';
-export default function Login(){const [username,setUsername]=useState(''),[password,setPassword]=useState(''),[show,setShow]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);const {login}=useAuth(),nav=useNavigate();async function submit(e:any){e.preventDefault();setBusy(true);setError('');try{await login(username,password);nav('/')}catch(e){setError(message(e))}finally{setBusy(false)}}return <div className="relative flex min-h-screen"><div className="absolute right-5 top-5 z-10"><ThemeToggle compact/></div><div className="hidden flex-1 bg-forest-900 p-12 text-white lg:flex lg:flex-col lg:justify-between"><div className="flex items-center gap-3 text-lg font-bold"><BookOpen className="text-gold"/> APE KADE</div><div><h1 className="max-w-xl text-6xl font-black leading-tight">විශ්වාසයෙන් ලියන<br/><span className="text-gold">ඩිජිටල් ණය පොත.</span></h1><p className="mt-6 max-w-lg text-white/60">Secure customer credit, payment and transaction management for your shop.</p></div><small className="text-white/40">අපේ කඩේ ණය පොත · Secure & auditable</small></div><div className="flex w-full items-center justify-center bg-[#f7f8f5] p-6 lg:w-[520px]"><form onSubmit={submit} className="w-full max-w-sm"><div className="mb-9 lg:hidden"><BookOpen className="mb-4 text-forest-600"/><h1 className="text-3xl font-black">අපේ කඩේ ණය පොත</h1><p className="text-sm text-slate-500">Ape Kade Credit Book</p></div><h2 className="text-2xl font-extrabold">Welcome back</h2><p className="mb-7 mt-1 text-sm text-slate-500">ඔබගේ ගිණුමට පිවිසෙන්න</p>{error&&<div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}<label className="label">Username</label><input className="input mb-4" value={username} onChange={e=>setUsername(e.target.value)} required autoComplete="username"/><label className="label">Password</label><div className="relative mb-6"><input className="input pr-11" type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password"/><button type="button" className="absolute right-3 top-3 text-slate-400" onClick={()=>setShow(!show)}>{show?<EyeOff size={20}/>:<Eye size={20}/>}</button></div><button className="btn-primary w-full" disabled={busy}>{busy?<LoaderCircle className="animate-spin"/>:'Login'}</button></form></div></div>}
+import {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {BookOpen, Eye, EyeOff, LoaderCircle} from 'lucide-react';
+import {useAuth} from '../contexts/AuthContext';
+import {message} from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
+
+export default function Login() {
+    const [username, setUsername] = useState(''), [password, setPassword] = useState(''), [show, setShow] = useState(false), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+    const {login} = useAuth(), nav = useNavigate();
+
+    async function submit(e: any) {
+        e.preventDefault();
+        setBusy(true);
+        setError('');
+        try {
+            await login(username, password);
+            nav('/')
+        } catch (e) {
+            setError(message(e))
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    return <div className="relative flex min-h-screen">
+        <div className="absolute right-5 top-5 z-10"><ThemeToggle compact/></div>
+        <div className="hidden flex-1 bg-forest-900 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+            <div className="flex items-center gap-3 text-lg font-bold"><BookOpen className="text-gold"/> APE KADE</div>
+            <div><h1 className="max-w-xl text-6xl font-black leading-tight">විශ්වාසයෙන් ලියන<br/><span
+                className="text-gold">ඩිජිටල් ණය පොත.</span></h1><p className="mt-6 max-w-lg text-white/60">Secure
+                customer credit, payment and transaction management for your shop.</p></div>
+            <small className="text-white/40">අපේ කඩේ ණය පොත · Secure & auditable</small></div>
+        <div className="flex w-full items-center justify-center bg-[#f7f8f5] p-6 lg:w-[520px]">
+            <form onSubmit={submit} className="w-full max-w-sm">
+                <div className="mb-9 lg:hidden"><BookOpen className="mb-4 text-forest-600"/><h1
+                    className="text-3xl font-black">අපේ කඩේ ණය පොත</h1><p className="text-sm text-slate-500">Ape Kade
+                    Credit Book</p></div>
+                <h2 className="text-2xl font-extrabold">Welcome back</h2><p
+                className="mb-7 mt-1 text-sm text-slate-500">ඔබගේ ගිණුමට පිවිසෙන්න</p>{error &&
+                <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}<label
+                className="label">Username</label><input className="input mb-4" value={username}
+                                                         onChange={e => setUsername(e.target.value)} required
+                                                         autoComplete="username"/><label
+                className="label">Password</label>
+                <div className="relative mb-6"><input className="input pr-11" type={show ? 'text' : 'password'}
+                                                      value={password} onChange={e => setPassword(e.target.value)}
+                                                      required autoComplete="current-password"/>
+                    <button type="button" className="absolute right-3 top-3 text-slate-400"
+                            onClick={() => setShow(!show)}>{show ? <EyeOff size={20}/> : <Eye size={20}/>}</button>
+                </div>
+                <button className="btn-primary w-full" disabled={busy}>{busy ?
+                    <LoaderCircle className="animate-spin"/> : 'Login'}</button>
+            </form>
+        </div>
+    </div>
+}

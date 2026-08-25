@@ -1,4 +1,5 @@
 # Complete Vercel Deployment Guide
+
 ## අපේ කඩේ ණය පොත — Frontend + Backend + MongoDB Atlas
 
 This project is deployed as one Vercel project:
@@ -13,7 +14,8 @@ Vercel Express serverless function
 MongoDB Atlas
 ```
 
-Using one Vercel project is recommended because the React frontend and Express API share the same secure origin. JWT HTTP-only cookies therefore work without cross-site cookie configuration.
+Using one Vercel project is recommended because the React frontend and Express API share the same secure origin. JWT
+HTTP-only cookies therefore work without cross-site cookie configuration.
 
 ---
 
@@ -52,8 +54,14 @@ The current `vercel.json` performs these tasks:
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/:path*", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
   ]
 }
 ```
@@ -266,17 +274,19 @@ Vercel automatically creates a new deployment after each push when Git integrati
 
 Use these exact values if Vercel does not automatically read them from `vercel.json`:
 
-| Setting | Value |
-|---|---|
-| Framework Preset | `Other` |
-| Root Directory | `./` (repository root) |
-| Install Command | `npm install && npm --prefix server install && npm --prefix client install` |
-| Build Command | `npm run build` |
-| Output Directory | `client/dist` |
+| Setting          | Value                                                                       |
+|------------------|-----------------------------------------------------------------------------|
+| Framework Preset | `Other`                                                                     |
+| Root Directory   | `./` (repository root)                                                      |
+| Install Command  | `npm install && npm --prefix server install && npm --prefix client install` |
+| Build Command    | `npm run build`                                                             |
+| Output Directory | `client/dist`                                                               |
 
-Do not select `client` as the Root Directory. Doing so prevents Vercel from finding the Express backend and root `vercel.json`.
+Do not select `client` as the Root Directory. Doing so prevents Vercel from finding the Express backend and root
+`vercel.json`.
 
-The project's Vercel settings normally inherit these values from `vercel.json`. If dashboard overrides are enabled, make sure they match the table.
+The project's Vercel settings normally inherit these values from `vercel.json`. If dashboard overrides are enabled, make
+sure they match the table.
 
 ---
 
@@ -290,14 +300,14 @@ Vercel Project → Settings → Environment Variables
 
 Add the following:
 
-| Name | Required value | Environments |
-|---|---|---|
-| `MONGODB_URI` | MongoDB Atlas connection string | Production, Preview, Development |
-| `JWT_SECRET` | Random secret of at least 32 characters | Production, Preview, Development |
-| `JWT_EXPIRES_IN` | `8h` | Production, Preview, Development |
-| `CLIENT_URL` | Exact HTTPS frontend origin | Production, Preview |
-| `NODE_ENV` | `production` | Production, Preview |
-| `VITE_API_URL` | Leave empty for same-origin `/api` | Production, Preview |
+| Name             | Required value                          | Environments                     |
+|------------------|-----------------------------------------|----------------------------------|
+| `MONGODB_URI`    | MongoDB Atlas connection string         | Production, Preview, Development |
+| `JWT_SECRET`     | Random secret of at least 32 characters | Production, Preview, Development |
+| `JWT_EXPIRES_IN` | `8h`                                    | Production, Preview, Development |
+| `CLIENT_URL`     | Exact HTTPS frontend origin             | Production, Preview              |
+| `NODE_ENV`       | `production`                            | Production, Preview              |
+| `VITE_API_URL`   | Leave empty for same-origin `/api`      | Production, Preview              |
 
 Generate a secure JWT secret locally:
 
@@ -323,9 +333,11 @@ Important:
 - `CLIENT_URL` must include `https://`.
 - Vercel automatically provides `VERCEL_URL`; do not set it manually.
 - Server environment variables are read at runtime.
-- Variables beginning with `VITE_` are embedded into the frontend during build and are visible to browsers. Never put secrets in a `VITE_` variable.
+- Variables beginning with `VITE_` are embedded into the frontend during build and are visible to browsers. Never put
+  secrets in a `VITE_` variable.
 
-The application needs `VITE_API_URL` only when the API is hosted separately. For this combined deployment, leave it empty.
+The application needs `VITE_API_URL` only when the API is hosted separately. For this combined deployment, leave it
+empty.
 
 ---
 
@@ -362,7 +374,8 @@ If this differs from the `CLIENT_URL` entered earlier:
 3. Open **Deployments**.
 4. Redeploy the latest deployment.
 
-The automatically supplied `VERCEL_URL` permits the current generated deployment origin, but setting the correct `CLIENT_URL` is still required for production consistency and custom domains.
+The automatically supplied `VERCEL_URL` permits the current generated deployment origin, but setting the correct
+`CLIENT_URL` is still required for production consistency and custom domains.
 
 ---
 
@@ -423,7 +436,8 @@ Vercel Project → Logs
 
 ## 10. Seed the production database
 
-Deployment does not automatically seed accounts. Run the idempotent initialization script once against the Atlas production database.
+Deployment does not automatically seed accounts. Run the idempotent initialization script once against the Atlas
+production database.
 
 ### Recommended method: pull Vercel environment variables
 
@@ -491,10 +505,13 @@ https://YOUR_DOMAIN/api/health
 Expected result:
 
 ```json
-{"status":"ok"}
+{
+  "status": "ok"
+}
 ```
 
-This confirms Vercel routing and the Express function are available. The first request after inactivity may take slightly longer because of a serverless cold start.
+This confirms Vercel routing and the Express function are available. The first request after inactivity may take
+slightly longer because of a serverless cold start.
 
 ### Login page
 
@@ -515,7 +532,8 @@ Verify:
 7. Admin-only pages reject Cashier API access.
 8. Dark mode and Android/PWA installation work.
 
-Do not create fake production financial records for testing. Use a real authorized record, or remove only a customer with no financial history through database administration. Financial records should be voided rather than deleted.
+Do not create fake production financial records for testing. Use a real authorized record, or remove only a customer
+with no financial history through database administration. Financial records should be voided rather than deleted.
 
 ---
 
@@ -586,7 +604,8 @@ Vercel rewrites:
 
 to the same Express serverless function while retaining the original API path.
 
-The backend filesystem is temporary and must never be used for persistent records. All persistent business data remains in MongoDB Atlas.
+The backend filesystem is temporary and must never be used for persistent records. All persistent business data remains
+in MongoDB Atlas.
 
 ---
 
@@ -667,7 +686,8 @@ View the Vercel Function logs for the underlying connection message.
 
 ### API returns `500 An unexpected error occurred`
 
-Open Vercel Logs and inspect the server-side error. The API intentionally does not expose stack traces to browsers. Confirm the latest code was deployed and all variables are configured.
+Open Vercel Logs and inspect the server-side error. The API intentionally does not expose stack traces to browsers.
+Confirm the latest code was deployed and all variables are configured.
 
 ### Browser shows a CORS error
 
@@ -703,7 +723,10 @@ Check:
 Ensure the final rewrite exists:
 
 ```json
-{ "source": "/:path*", "destination": "/index.html" }
+{
+  "source": "/:path*",
+  "destination": "/index.html"
+}
 ```
 
 ### Changes are not visible
@@ -752,4 +775,5 @@ Vercel serverless Express function
 MongoDB Atlas replica set + backups
 ```
 
-Vercel hosts application code, not the database. MongoDB Atlas remains the source of truth for customers, transactions, audit logs, users, categories, and settings.
+Vercel hosts application code, not the database. MongoDB Atlas remains the source of truth for customers, transactions,
+audit logs, users, categories, and settings.
