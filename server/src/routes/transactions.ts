@@ -37,16 +37,14 @@ const createFinancial = (type: 'CREDIT' | 'PAYMENT') => asyncHandler(async (req,
     let createdId = '';
     let previousBalanceCents = 0;
     await runAtomic(async (session?: ClientSession) => {
-        // Touching the customer in replica-set mode serializes concurrent payments for
-        // the same customer and prevents two simultaneous payments from overpaying.
+        // Touching the customer in replica-set mode serializes concurrent entries for
+        // the same customer so debt and advance balances remain deterministic.
         if (session) {
             await Customer.updateOne({_id: customerId}, {$set: {updatedAt: new Date()}}, {session});
         }
         previousBalanceCents = await balanceCents(customerId, session);
-        if (type === 'PAYMENT' && amountCents > previousBalanceCents) {
-            throw new AppError(400, 'Payment exceeds outstanding balance.');
-        }
-
+        // Payments may exceed the current debt. A negative ledger balance represents
+        // money held in advance for this customer and is preserved as a real payment.
         let created: any;
         try {
             [created] = await Transaction.create([{
@@ -81,8 +79,11 @@ const createFinancial = (type: 'CREDIT' | 'PAYMENT') => asyncHandler(async (req,
     if (!populated) throw new AppError(500, 'Transaction was saved but could not be loaded.');
     res.status(201).json({
         ...amountView(populated),
-        previousBalance: previousBalanceCents / 100,
-        remainingBalance: remainingBalanceCents / 100,
+        previousBalance: Math.max(0, previousBalanceCents) / 100,
+        previousAdvanceBalance: Math.max(0, -previousBalanceCents) / 100,
+        remainingBalance: Math.max(0, remainingBalanceCents) / 100,
+        advanceBalance: Math.max(0, -remainingBalanceCents) / 100,
+        ledgerBalance: remainingBalanceCents / 100,
     });
 });
 
