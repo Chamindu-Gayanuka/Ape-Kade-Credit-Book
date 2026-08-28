@@ -12,7 +12,7 @@ export interface User {
     bio?: string;
     status: string;
     lastLogin?: string;
-    createdAt?: string
+    createdAt?: string;
 }
 
 export interface Customer {
@@ -25,13 +25,15 @@ export interface Customer {
     notes: string;
     status: string;
     createdAt: string;
-    outstandingBalance: number
+    outstandingBalance: number;
+    advanceBalance: number;
+    ledgerBalance: number;
 }
 
 export interface Category {
     _id: string;
     name: string;
-    status: string
+    status: string;
 }
 
 export interface Tx {
@@ -48,5 +50,8 @@ export interface Tx {
     createdBy: any;
     createdAt: string;
     previousBalance?: number;
-    remainingBalance?: number
+    previousAdvanceBalance?: number;
+    remainingBalance?: number;
+    advanceBalance?: number;
+    ledgerBalance?: number;
 }
