@@ -9,6 +9,7 @@
       "includeFiles": "server/dist/**"
     }
   },
+
   "rewrites": [
     {
       "source": "/api/:path*",
