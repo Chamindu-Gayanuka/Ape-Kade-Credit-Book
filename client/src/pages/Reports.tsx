@@ -922,6 +922,45 @@ export default function Reports() {
                             first - second
                     );
 
+            // Each h2 starts a logical report topic. When a complete topic is
+            // short enough for one page but cannot fit in the remaining space,
+            // move the whole topic to the next page instead of separating its
+            // heading/table header from its rows.
+            const sectionHeadings =
+                Array.from(
+                    reportElement.querySelectorAll('h2')
+                );
+
+            const sectionRanges =
+                sectionHeadings.map((heading, index) => {
+                    const nextHeading =
+                        sectionHeadings[index + 1];
+
+                    const top =
+                        Math.round(
+                            (
+                                heading.getBoundingClientRect().top -
+                                reportBounds.top
+                            ) * scaleY
+                        );
+
+                    const bottom =
+                        nextHeading
+                            ? Math.round(
+                                (
+                                    nextHeading.getBoundingClientRect().top -
+                                    reportBounds.top
+                                ) * scaleY
+                            )
+                            : canvas.height;
+
+                    return {
+                        top,
+                        bottom,
+                        height: bottom - top
+                    };
+                });
+
             let sourceY = 0;
             let pageNumber = 1;
 
@@ -937,24 +976,38 @@ export default function Reports() {
 
                 if (maximumEnd < canvas.height) {
 
-                    const minimumUsefulEnd =
-                        sourceY +
-                        Math.floor(
-                            maximumSliceHeight * 0.45
+                    const sectionThatDoesNotFit =
+                        sectionRanges.find(section =>
+                            section.top > sourceY + 40 &&
+                            section.top < maximumEnd &&
+                            section.bottom > maximumEnd &&
+                            section.height <= maximumSliceHeight - 40
                         );
 
-                    const safeBreaks =
-                        breakPoints.filter(position =>
-                            position >= minimumUsefulEnd &&
-                            position <= maximumEnd - 8
-                        );
-
-                    if (safeBreaks.length) {
-
+                    if (sectionThatDoesNotFit) {
+                        // Leave intentional whitespace and begin this complete
+                        // topic at the top of the following PDF page.
                         sliceEnd =
-                            safeBreaks[
-                            safeBreaks.length - 1
-                                ];
+                            sectionThatDoesNotFit.top;
+                    } else {
+                        const minimumUsefulEnd =
+                            sourceY +
+                            Math.floor(
+                                maximumSliceHeight * 0.45
+                            );
+
+                        const safeBreaks =
+                            breakPoints.filter(position =>
+                                position >= minimumUsefulEnd &&
+                                position <= maximumEnd - 8
+                            );
+
+                        if (safeBreaks.length) {
+                            sliceEnd =
+                                safeBreaks[
+                                safeBreaks.length - 1
+                                    ];
+                        }
                     }
                 }
 
