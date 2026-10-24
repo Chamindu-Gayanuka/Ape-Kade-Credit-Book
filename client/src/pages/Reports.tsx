@@ -129,6 +129,12 @@ export default function Reports() {
       </tr>`).join('');
         const categoryRows = report.categories.map((item: any) => `
       <tr><td><strong>${safe(item.name)}</strong></td><td>${safe(item.count)}</td><td>${safe(money(item.total))}</td></tr>`).join('');
+        const dailyRows = (report.trend || []).map((item: any) => `
+      <tr><td><strong>${safe(item.date)}</strong></td><td>${safe(money(item.credit))}</td><td>${safe(money(item.payments))}</td></tr>`).join('');
+        const monthlyRows = (report.monthlyTrend || []).map((item: any) => `
+      <tr><td><strong>${safe(item.month)}</strong></td><td>${safe(money(item.credit))}</td><td>${safe(money(item.payments))}</td><td>${safe(item.creditCount)}</td><td>${safe(item.paymentCount)}</td></tr>`).join('');
+        const userRows = (report.users || []).map((item: any) => `
+      <tr><td><strong>${safe(item.name)}</strong></td><td>${safe(item.count)}</td><td>${safe(money(item.total))}</td></tr>`).join('');
 
         const reportElement = document.createElement('section');
         reportElement.setAttribute('aria-hidden', 'true');
@@ -168,10 +174,28 @@ export default function Reports() {
           </tr></thead><tbody>${customerRows}</tbody>
         </table>
         <h2 style="font-size:17px;margin:0 0 10px;color:#240046">Category Details</h2>
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:26px">
           <thead><tr style="background:#9d4edd;color:white">
             <th style="padding:9px;text-align:left">Category</th><th style="padding:9px;text-align:left">Transactions</th><th style="padding:9px;text-align:left">Total Credit</th>
           </tr></thead><tbody>${categoryRows}</tbody>
+        </table>
+        <h2 style="font-size:17px;margin:0 0 10px;color:#240046">Daily Credit and Payments</h2>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:26px">
+          <thead><tr style="background:#5b7cfa;color:white">
+            <th style="padding:9px;text-align:left">Date</th><th style="padding:9px;text-align:left">Credit</th><th style="padding:9px;text-align:left">Payments</th>
+          </tr></thead><tbody>${dailyRows}</tbody>
+        </table>
+        <h2 style="font-size:17px;margin:0 0 10px;color:#240046">Monthly Credit and Payments</h2>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:26px">
+          <thead><tr style="background:#8c36d7;color:white">
+            <th style="padding:9px;text-align:left">Month</th><th style="padding:9px;text-align:left">Credit</th><th style="padding:9px;text-align:left">Payments</th><th style="padding:9px;text-align:left">Credit Tx</th><th style="padding:9px;text-align:left">Payment Tx</th>
+          </tr></thead><tbody>${monthlyRows}</tbody>
+        </table>
+        <h2 style="font-size:17px;margin:0 0 10px;color:#240046">User Activity</h2>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <thead><tr style="background:#ff8a52;color:white">
+            <th style="padding:9px;text-align:left">User</th><th style="padding:9px;text-align:left">Transactions</th><th style="padding:9px;text-align:left">Total Amount</th>
+          </tr></thead><tbody>${userRows}</tbody>
         </table>
         <div style="border-top:1px solid #e9ccff;margin-top:24px;padding-top:10px;font-size:10px;color:#7b2cbf">
           Generated ${safe(new Date().toLocaleString())} · Actual stored business data
@@ -262,33 +286,192 @@ export default function Reports() {
     }
 
     function exportCsv() {
-        const rows = exportRows();
-        const headers = Object.keys(rows[0] || {
-            Customer: '',
-            'Customer ID': '',
-            Transactions: '',
-            Credit: '',
-            Payments: '',
-            Net: ''
-        });
-        const csv = [headers.join(','), ...rows.map((row: any) => headers.map(header => `"${String(row[header] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
-        download(new Blob([csv], {type: 'text/csv;charset=utf-8'}), `ape-kade-report-${mode}.csv`);
+        const escapeCsv = (value: unknown) => `"${unicodeText(value).replace(/"/g, '""')}"`;
+        const csvLine = (...values: unknown[]) => values.map(escapeCsv).join(',');
+        const lines: string[] = [
+            // Excel uses this hint to select the delimiter regardless of regional settings.
+            'sep=,',
+            csvLine('APE KADE CREDIT BOOK'),
+            csvLine('Report', title),
+            csvLine('Period', periodLabel),
+            csvLine('Generated', new Date().toLocaleString()),
+            '',
+            csvLine('FINANCIAL SUMMARY'),
+            csvLine('Total Credit', 'Total Payments', 'Net', 'Credit Count', 'Payment Count'),
+            csvLine(report.summary.totalCredit, report.summary.totalPayments, report.summary.net,
+                report.summary.creditCount, report.summary.paymentCount),
+            '',
+            csvLine('CUSTOMER SUMMARY'),
+            csvLine('Customer', 'Customer ID', 'Transactions', 'Credit', 'Payments', 'Net'),
+            ...exportRows().map((row: any) => csvLine(
+                row.Customer, row['Customer ID'], row.Transactions,
+                row.Credit, row.Payments, row.Net,
+            )),
+            '',
+            csvLine('CATEGORY DETAILS'),
+            csvLine('Category', 'Transactions', 'Total Credit'),
+            ...report.categories.map((item: any) => csvLine(item.name, item.count, item.total)),
+            '',
+            csvLine('DAILY CREDIT AND PAYMENTS'),
+            csvLine('Date', 'Credit', 'Payments'),
+            ...(report.trend || []).map((item: any) => csvLine(item.date, item.credit, item.payments)),
+            '',
+            csvLine('MONTHLY CREDIT AND PAYMENTS'),
+            csvLine('Month', 'Credit', 'Payments', 'Credit Count', 'Payment Count'),
+            ...(report.monthlyTrend || []).map((item: any) => csvLine(
+                item.month, item.credit, item.payments, item.creditCount, item.paymentCount,
+            )),
+            '',
+            csvLine('USER ACTIVITY'),
+            csvLine('User', 'Transactions', 'Total Amount'),
+            ...(report.users || []).map((item: any) => csvLine(item.name, item.count, item.total)),
+        ];
+
+        // UTF-8 BOM ensures Sinhala and all Unicode text open correctly in Excel/Windows.
+        const csv = `\uFEFF${lines.join('\r\n')}`;
+        download(
+            new Blob([csv], {type: 'text/csv;charset=utf-8'}),
+            `ape-kade-complete-report-${mode}.csv`,
+        );
     }
 
     async function exportExcel() {
         const XLSX = await import('xlsx');
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{
-            Period: periodLabel,
-            'Total Credit': report.summary.totalCredit,
-            'Total Payments': report.summary.totalPayments,
-            Net: report.summary.net,
-            'Credit Count': report.summary.creditCount,
-            'Payment Count': report.summary.paymentCount
-        }]), 'Summary');
-        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exportRows()), 'Customers');
-        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(report.categories), 'Categories');
-        XLSX.writeFile(workbook, `ape-kade-report-${mode}.xlsx`);
+        workbook.Props = {
+            Title: unicodeText(title),
+            Subject: 'Ape Kade financial report',
+            Author: 'Ape Kade Credit Book',
+            CreatedDate: new Date(),
+        };
+
+        const customerRows = exportRows().map((row: any) => [
+            unicodeText(row.Customer),
+            unicodeText(row['Customer ID']),
+            Number(row.Transactions || 0),
+            Number(row.Credit || 0),
+            Number(row.Payments || 0),
+            Number(row.Net || 0),
+        ]);
+        const categoryRows = report.categories.map((item: any) => [
+            unicodeText(item.name), Number(item.count || 0), Number(item.total || 0),
+        ]);
+        const dailyRows = (report.trend || []).map((item: any) => [
+            unicodeText(item.date), Number(item.credit || 0), Number(item.payments || 0),
+        ]);
+        const monthlyRows = (report.monthlyTrend || []).map((item: any) => [
+            unicodeText(item.month), Number(item.credit || 0), Number(item.payments || 0),
+            Number(item.creditCount || 0), Number(item.paymentCount || 0),
+        ]);
+        const userRows = (report.users || []).map((item: any) => [
+            unicodeText(item.name), Number(item.count || 0), Number(item.total || 0),
+        ]);
+
+        // The first worksheet intentionally contains the complete report so users see
+        // all exported details immediately without needing to discover worksheet tabs.
+        const fullReportRows: any[][] = [
+            ['APE KADE CREDIT BOOK'],
+            ['Report', unicodeText(title)],
+            ['Period', unicodeText(periodLabel)],
+            ['Generated', unicodeText(new Date().toLocaleString())],
+            [],
+            ['FINANCIAL SUMMARY'],
+            ['Total Credit', 'Total Payments', 'Net', 'Credit Count', 'Payment Count'],
+            [Number(report.summary.totalCredit || 0), Number(report.summary.totalPayments || 0),
+                Number(report.summary.net || 0), Number(report.summary.creditCount || 0),
+                Number(report.summary.paymentCount || 0)],
+            [],
+            ['CUSTOMER SUMMARY'],
+            ['Customer', 'Customer ID', 'Transactions', 'Credit', 'Payments', 'Net'],
+            ...customerRows,
+            [],
+            ['CATEGORY DETAILS'],
+            ['Category', 'Transactions', 'Total Credit'],
+            ...categoryRows,
+            [],
+            ['DAILY CREDIT AND PAYMENTS'],
+            ['Date', 'Credit', 'Payments'],
+            ...dailyRows,
+            [],
+            ['MONTHLY CREDIT AND PAYMENTS'],
+            ['Month', 'Credit', 'Payments', 'Credit Count', 'Payment Count'],
+            ...monthlyRows,
+            [],
+            ['USER ACTIVITY'],
+            ['User', 'Transactions', 'Total Amount'],
+            ...userRows,
+        ];
+        const fullReportSheet = XLSX.utils.aoa_to_sheet(fullReportRows);
+        fullReportSheet['!cols'] = [
+            {wch: 34}, {wch: 20}, {wch: 16}, {wch: 17}, {wch: 17}, {wch: 17},
+        ];
+        fullReportSheet['!merges'] = [
+            {s: {r: 0, c: 0}, e: {r: 0, c: 5}},
+        ];
+
+        const summarySheet = XLSX.utils.aoa_to_sheet([
+            ['APE KADE CREDIT BOOK'],
+            ['Report', unicodeText(title)],
+            ['Period', unicodeText(periodLabel)],
+            [],
+            ['Total Credit', 'Total Payments', 'Net', 'Credit Count', 'Payment Count'],
+            [Number(report.summary.totalCredit || 0), Number(report.summary.totalPayments || 0),
+                Number(report.summary.net || 0), Number(report.summary.creditCount || 0),
+                Number(report.summary.paymentCount || 0)],
+        ]);
+        summarySheet['!cols'] = [
+            {wch: 24}, {wch: 28}, {wch: 18}, {wch: 16}, {wch: 18},
+        ];
+
+        const customerSheet = XLSX.utils.aoa_to_sheet([
+            ['Customer', 'Customer ID', 'Transactions', 'Credit', 'Payments', 'Net'],
+            ...customerRows,
+        ]);
+        customerSheet['!cols'] = [
+            {wch: 34}, {wch: 16}, {wch: 14}, {wch: 16}, {wch: 16}, {wch: 16},
+        ];
+        if (customerRows.length) customerSheet['!autofilter'] = {ref: `A1:F${customerRows.length + 1}`};
+
+        const categorySheet = XLSX.utils.aoa_to_sheet([
+            ['Category', 'Transactions', 'Total Credit'],
+            ...categoryRows,
+        ]);
+        categorySheet['!cols'] = [{wch: 32}, {wch: 16}, {wch: 18}];
+
+        const dailySheet = XLSX.utils.aoa_to_sheet([
+            ['Date', 'Credit', 'Payments'], ...dailyRows,
+        ]);
+        dailySheet['!cols'] = [{wch: 16}, {wch: 18}, {wch: 18}];
+
+        const monthlySheet = XLSX.utils.aoa_to_sheet([
+            ['Month', 'Credit', 'Payments', 'Credit Count', 'Payment Count'], ...monthlyRows,
+        ]);
+        monthlySheet['!cols'] = [
+            {wch: 14}, {wch: 18}, {wch: 18}, {wch: 16}, {wch: 18},
+        ];
+
+        const usersSheet = XLSX.utils.aoa_to_sheet([
+            ['User', 'Transactions', 'Total Amount'], ...userRows,
+        ]);
+        usersSheet['!cols'] = [{wch: 32}, {wch: 16}, {wch: 18}];
+
+        XLSX.utils.book_append_sheet(workbook, fullReportSheet, 'Full Report');
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+        XLSX.utils.book_append_sheet(workbook, customerSheet, 'Customers');
+        XLSX.utils.book_append_sheet(workbook, categorySheet, 'Categories');
+        XLSX.utils.book_append_sheet(workbook, dailySheet, 'Daily Trend');
+        XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly Trend');
+        XLSX.utils.book_append_sheet(workbook, usersSheet, 'Users');
+
+        const bytes = XLSX.write(workbook, {
+            bookType: 'xlsx', type: 'array', compression: true, cellDates: true,
+        });
+        download(
+            new Blob([bytes], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            }),
+            `ape-kade-report-${mode}.xlsx`,
+        );
     }
 
     return <><PageTitle title="වාර්තා" subtitle="All-time reports by default, with flexible calendar filtering"
@@ -422,11 +605,19 @@ export default function Reports() {
     </>;
 }
 
+function unicodeText(value: unknown): string {
+    return String(value ?? '').normalize('NFC');
+}
+
 function download(blob: Blob, name: string) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = name;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
+    anchor.remove();
+    // Safari/Edge may still be reading the Blob immediately after click.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
