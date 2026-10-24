@@ -2,7 +2,7 @@
 <html lang="si">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="theme-color" content="#240046"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -10,44 +10,38 @@
     <link rel="manifest" href="/manifest.webmanifest"/>
     <link rel="icon" href="/app-icon.svg"/>
     <title>අපේ කඩේ ණය පොත</title>
-    <script>try {
-        const t = localStorage.getItem('ape-kade-theme');
-        if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark')
-    } catch (e) {
-    }</script>
+    <script>
+        try {
+            const theme = localStorage.getItem('ape-kade-theme');
+            if (theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (_) {
+        }
+
+        // This executes before the React bundle. It removes old production PWA workers
+        // that may still control localhost and serve a stale protected page at /login.
+        if ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') &&
+            'serviceWorker' in navigator && !sessionStorage.getItem('ape-kade-dev-sw-cleared')) {
+            Promise.all([
+                navigator.serviceWorker.getRegistrations().then(items =>
+                    Promise.all(items.map(item => item.unregister())).then(() => items.length)
+                ),
+                'caches' in window ? caches.keys().then(keys =>
+                    Promise.all(keys.filter(key => key.startsWith('ape-kade-')).map(key => caches.delete(key)))
+                        .then(() => keys.length)
+                ) : Promise.resolve(0),
+            ]).then(([registrations, cacheEntries]) => {
+                if (navigator.serviceWorker.controller || registrations > 0 || cacheEntries > 0) {
+                    sessionStorage.setItem('ape-kade-dev-sw-cleared', '1');
+                    location.reload();
+                }
+            });
+        }
+    </script>
 </head>
 <body>
 <div id="root"></div>
-<script type="module" src="/src/main.tsx"></script>
-<script>(function () {
-    function c() {
-        var b = a.contentDocument || (a.contentWindow && a.contentWindow.document);
-        if (b) {
-            var d = b.createElement('script');
-            d.innerHTML = "window.__CF$cv$params={r:'a4f848986e570a72',t:'MTc5MjgzNzU4OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
-            b.getElementsByTagName('head')[0].appendChild(d)
-        }
-    }
-
-    if (document.body) {
-        var a = document.createElement('iframe');
-        a.height = 1;
-        a.width = 1;
-        a.style.position = 'absolute';
-        a.style.top = 0;
-        a.style.left = 0;
-        a.style.border = 'none';
-        a.style.visibility = 'hidden';
-        document.body.appendChild(a);
-        if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else {
-            var e = document.onreadystatechange || function () {
-            };
-            document.onreadystatechange = function (b) {
-                e(b);
-                'loading' !== document.readyState && (document.onreadystatechange = e, c())
-            }
-        }
-    }
-})();</script>
+<script type="module" src="./src/main.tsx"></script>
 </body>
 </html>
