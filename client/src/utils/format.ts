@@ -6,4 +6,4 @@ export const money = (n = 0) => new Intl.NumberFormat('en-LK', {
 export const dateTime = (d?: string) => d ? new Intl.DateTimeFormat('en-LK', {
     dateStyle: 'medium',
     timeStyle: 'short'
-}).format(new Date(d)) : '—';
+}).format(new Date(d)) : '-';

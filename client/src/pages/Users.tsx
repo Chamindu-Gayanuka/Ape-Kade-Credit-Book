@@ -43,7 +43,7 @@ export default function Users() {
         }
     }
 
-    return <><PageTitle title="පරිශීලකයන්" subtitle="Admin user management — passwords are never displayed"/>
+    return <><PageTitle title="පරිශීලකයන්" subtitle="Admin user management - passwords are never displayed"/>
         <div className="card">{!data ? <Spinner/> : <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
                 <thead>
@@ -71,7 +71,7 @@ export default function Users() {
                             <button className="btn-secondary" title="Change password" onClick={() => password(u)}>
                                 <KeyRound size={16}/></button>
                             <button
-                                className={`btn-secondary ${u.status === 'ACTIVE' ? 'text-red-600' : 'text-emerald-600'}`}
+                                className={`btn-secondary ${u.status === 'ACTIVE' ? 'text-red-600' : 'text-deep_lilac-500 dark:text-lavender_purple-600'}`}
                                 onClick={() => toggle(u)}>{u.status === 'ACTIVE' ? <PowerOff size={16}/> :
                                 <Power size={16}/>}</button>
                         </div>

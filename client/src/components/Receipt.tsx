@@ -4,9 +4,9 @@ import { money, dateTime } from '../utils/format';
 
 export default function Receipt({ tx, onClose }: { tx: Tx; onClose: () => void }) {
     const rows: Array<[string, string]> = [
-        ['Customer', tx.customerId?.name || '—'],
+        ['Customer', tx.customerId?.name || '-'],
         ['Transaction Type', tx.transactionType],
-        ['Category', tx.categoryId?.name || '—'],
+        ['Category', tx.categoryId?.name || '-'],
         ['Amount', money(tx.amount)],
         ['Previous Outstanding', money(tx.previousBalance)],
     ];
@@ -19,7 +19,7 @@ export default function Receipt({ tx, onClose }: { tx: Tx; onClose: () => void }
     }
     rows.push(
         ['Date / Time', dateTime(tx.createdAt)],
-        ['Recorded By', tx.createdBy?.fullName || '—'],
+        ['Recorded By', tx.createdBy?.fullName || '-'],
         ['Transaction ID', tx.transactionCode],
     );
 

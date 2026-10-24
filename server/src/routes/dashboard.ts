@@ -13,7 +13,7 @@ router.get('/', asyncHandler(async (_req, res) => {
     const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const month = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [totalCustomers, balanceSummary, today, monthly, categories] = await Promise.all([
+    const [totalCustomers, balanceSummary, today, monthly, categories, customerBalances] = await Promise.all([
         Customer.countDocuments({status: 'ACTIVE'}),
         Transaction.aggregate([
             {$match: {status: 'ACTIVE'}},
@@ -71,11 +71,46 @@ router.get('/', asyncHandler(async (_req, res) => {
             },
             {$project: {name: 1, total: {$ifNull: [{$first: '$summary.total'}, 0]}}},
         ]),
+        Transaction.aggregate([
+            {$match: {status: 'ACTIVE'}},
+            {
+                $group: {
+                    _id: '$customerId',
+                    balance: {
+                        $sum: {
+                            $cond: [
+                                {$eq: ['$transactionType', 'PAYMENT']},
+                                {$multiply: ['$amountCents', -1]},
+                                '$amountCents',
+                            ]
+                        }
+                    },
+                }
+            },
+            {$lookup: {from: 'customers', localField: '_id', foreignField: '_id', as: 'customer'}},
+            {
+                $project: {
+                    name: {$ifNull: [{$first: '$customer.name'}, 'Unknown customer']},
+                    customerCode: {$ifNull: [{$first: '$customer.customerCode'}, '-']},
+                    balance: 1,
+                }
+            },
+        ]),
     ]);
 
     const summary = balanceSummary[0] || {};
     const value = (rows: any[], type: string) =>
         (rows.find(row => row._id === type)?.total || 0) / 100;
+    const highestCreditCustomers = customerBalances
+        .filter(item => item.balance > 0)
+        .sort((a, b) => b.balance - a.balance)
+        .slice(0, 10)
+        .map(item => ({id: item._id, name: item.name, customerCode: item.customerCode, amount: item.balance / 100}));
+    const highestAdvanceCustomers = customerBalances
+        .filter(item => item.balance < 0)
+        .sort((a, b) => a.balance - b.balance)
+        .slice(0, 5)
+        .map(item => ({id: item._id, name: item.name, customerCode: item.customerCode, amount: -item.balance / 100}));
 
     res.json({
         totalCustomers,
@@ -88,6 +123,8 @@ router.get('/', asyncHandler(async (_req, res) => {
         monthCredit: value(monthly, 'CREDIT'),
         monthPayments: value(monthly, 'PAYMENT'),
         categories: categories.map(item => ({name: item.name, total: item.total / 100})),
+        highestCreditCustomers,
+        highestAdvanceCustomers,
     });
 }));
 
