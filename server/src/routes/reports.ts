@@ -124,7 +124,7 @@ router.get('/overview', asyncHandler(async (req, res) => {
                 net: {$divide: [{$subtract: ['$credit', '$payments']}, 100]},
                 count: 1
             }
-        }, {$sort: {credit: -1}}, {$limit: 20}]),
+        }, {$sort: {credit: -1}}]),
     ]);
     const get = (type: string) => summary.find(item => item._id === type) || {total: 0, count: 0, average: 0};
     const trendMap = new Map<string, any>();
