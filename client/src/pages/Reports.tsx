@@ -110,92 +110,123 @@ export default function Reports() {
     }));
 
     async function exportPdf() {
-        const {jsPDF} = await import('jspdf');
-        const autoTable = (await import('jspdf-autotable')).default;
-        const document = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
-        const purple: [number, number, number] = [36, 0, 70];
-        const violet: [number, number, number] = [123, 44, 191];
-        const pink: [number, number, number] = [199, 125, 255];
-        document.setFillColor(...purple);
-        document.rect(0, 0, 210, 39, 'F');
-        document.setFillColor(...pink);
-        document.rect(0, 36, 210, 3, 'F');
-        document.setTextColor(255, 255, 255);
-        document.setFont('helvetica', 'bold');
-        document.setFontSize(19);
-        document.text('APE KADE CREDIT BOOK', 14, 16);
-        document.setFont('helvetica', 'normal');
-        document.setFontSize(10);
-        document.text(title, 14, 24);
-        document.text(periodLabel, 14, 31);
-        document.setTextColor(36, 21, 54);
-        const cards = [
-            {
-                label: 'TOTAL CREDIT',
-                value: money(report.summary.totalCredit),
-                color: [249, 238, 255] as [number, number, number]
-            },
-            {
-                label: 'TOTAL PAYMENTS',
-                value: money(report.summary.totalPayments),
-                color: [236, 220, 248] as [number, number, number]
-            },
-            {
-                label: 'NET MOVEMENT',
-                value: money(report.summary.net),
-                color: [229, 210, 245] as [number, number, number]
-            },
-        ];
-        cards.forEach((card, index) => {
-            const x = 14 + index * 61;
-            document.setFillColor(...card.color);
-            document.roundedRect(x, 47, 56, 25, 3, 3, 'F');
-            document.setFontSize(7);
-            document.setFont('helvetica', 'bold');
-            document.setTextColor(100, 88, 118);
-            document.text(card.label, x + 4, 55);
-            document.setFontSize(12);
-            document.setTextColor(36, 21, 54);
-            document.text(card.value, x + 4, 66);
+        const [{jsPDF}, {default: html2canvas}] = await Promise.all([
+            import('jspdf'),
+            import('html2canvas'),
+        ]);
+
+        const safe = (value: unknown) => String(value ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        const customerRows = exportRows().map((row: any) => `
+      <tr>
+        <td><strong>${safe(row.Customer)}</strong></td>
+        <td>${safe(row['Customer ID'])}</td>
+        <td>${safe(row.Transactions)}</td>
+        <td>${safe(money(row.Credit))}</td>
+        <td>${safe(money(row.Payments))}</td>
+        <td>${safe(money(row.Net))}</td>
+      </tr>`).join('');
+        const categoryRows = report.categories.map((item: any) => `
+      <tr><td><strong>${safe(item.name)}</strong></td><td>${safe(item.count)}</td><td>${safe(money(item.total))}</td></tr>`).join('');
+
+        const reportElement = document.createElement('section');
+        reportElement.setAttribute('aria-hidden', 'true');
+        reportElement.style.cssText = [
+            'position:fixed', 'left:-10000px', 'top:0', 'width:794px', 'background:#ffffff',
+            'color:#240046', 'padding:0 0 32px', 'font-family:"Noto Sans Sinhala","Noto Sans",Arial,sans-serif',
+            'font-size:12px', 'line-height:1.45', 'z-index:-1',
+        ].join(';');
+        reportElement.innerHTML = `
+      <header style="background:linear-gradient(120deg,#240046,#7b2cbf);color:white;padding:28px 34px 25px;border-bottom:6px solid #c77dff">
+        <div style="font-size:24px;font-weight:900;letter-spacing:.5px">අපේ කඩේ ණය පොත</div>
+        <div style="font-size:13px;font-weight:700;margin-top:2px">APE KADE CREDIT BOOK</div>
+        <div style="margin-top:11px;opacity:.9">${safe(title)}</div>
+        <div style="opacity:.75">${safe(periodLabel)}</div>
+      </header>
+      <main style="padding:24px 34px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px">
+          <div style="background:#fff5fc;border:1px solid #ffd6f5;border-radius:12px;padding:14px">
+            <div style="font-size:10px;font-weight:800;color:#7b2cbf">TOTAL CREDIT</div>
+            <div style="font-size:18px;font-weight:900;margin-top:5px">${safe(money(report.summary.totalCredit))}</div>
+          </div>
+          <div style="background:#f8eeff;border:1px solid #e4baff;border-radius:12px;padding:14px">
+            <div style="font-size:10px;font-weight:800;color:#7b2cbf">TOTAL PAYMENTS</div>
+            <div style="font-size:18px;font-weight:900;margin-top:5px">${safe(money(report.summary.totalPayments))}</div>
+          </div>
+          <div style="background:#f6f6ff;border:1px solid #dadbff;border-radius:12px;padding:14px">
+            <div style="font-size:10px;font-weight:800;color:#7b2cbf">NET MOVEMENT</div>
+            <div style="font-size:18px;font-weight:900;margin-top:5px">${safe(money(report.summary.net))}</div>
+          </div>
+        </div>
+        <h2 style="font-size:17px;margin:0 0 10px;color:#240046">Customer Summary</h2>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:26px">
+          <thead><tr style="background:#7b2cbf;color:white">
+            <th style="width:24%;padding:9px;text-align:left">Customer</th><th style="width:16%;padding:9px;text-align:left">ID</th>
+            <th style="width:8%;padding:9px;text-align:left">Tx</th><th style="width:17%;padding:9px;text-align:left">Credit</th>
+            <th style="width:18%;padding:9px;text-align:left">Payments</th><th style="width:17%;padding:9px;text-align:left">Net</th>
+          </tr></thead><tbody>${customerRows}</tbody>
+        </table>
+        <h2 style="font-size:17px;margin:0 0 10px;color:#240046">Category Details</h2>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <thead><tr style="background:#9d4edd;color:white">
+            <th style="padding:9px;text-align:left">Category</th><th style="padding:9px;text-align:left">Transactions</th><th style="padding:9px;text-align:left">Total Credit</th>
+          </tr></thead><tbody>${categoryRows}</tbody>
+        </table>
+        <div style="border-top:1px solid #e9ccff;margin-top:24px;padding-top:10px;font-size:10px;color:#7b2cbf">
+          Generated ${safe(new Date().toLocaleString())} · Actual stored business data
+        </div>
+      </main>`;
+
+        // Apply row styling without interpolating untrusted content into CSS.
+        reportElement.querySelectorAll('tbody tr').forEach((row, index) => {
+            (row as HTMLElement).style.background = index % 2 ? '#ffffff' : '#fdf4fe';
         });
-        document.setFontSize(12);
-        document.setFont('helvetica', 'bold');
-        document.setTextColor(...purple);
-        document.text('Customer Summary', 14, 84);
-        autoTable(document, {
-            startY: 89,
-            head: [['Customer', 'ID', 'Tx', 'Credit', 'Payments', 'Net']],
-            body: exportRows().map((row: any) => [row.Customer, row['Customer ID'], row.Transactions, row.Credit.toFixed(2), row.Payments.toFixed(2), row.Net.toFixed(2)]),
-            theme: 'striped',
-            headStyles: {fillColor: violet, textColor: 255},
-            alternateRowStyles: {fillColor: [249, 238, 255]},
-            styles: {fontSize: 8, cellPadding: 2.5},
-            margin: {left: 14, right: 14}
+        reportElement.querySelectorAll('td').forEach(cell => {
+            (cell as HTMLElement).style.cssText = 'padding:9px;border-bottom:1px solid #f2dcff;vertical-align:top;overflow-wrap:anywhere';
         });
-        const categoryY = (document as any).lastAutoTable.finalY + 12;
-        document.setFontSize(12);
-        document.setTextColor(...purple);
-        document.text('Category Details', 14, categoryY);
-        autoTable(document, {
-            startY: categoryY + 5,
-            head: [['Category', 'Transactions', 'Total Credit']],
-            body: report.categories.map((item: any) => [item.name, item.count, money(item.total)]),
-            headStyles: {fillColor: pink, textColor: 255},
-            theme: 'grid',
-            styles: {fontSize: 8},
-            margin: {left: 14, right: 14}
-        });
-        const pages = document.getNumberOfPages();
-        for (let page = 1; page <= pages; page++) {
-            document.setPage(page);
-            document.setDrawColor(225, 216, 238);
-            document.line(14, 285, 196, 285);
-            document.setFontSize(7);
-            document.setTextColor(120, 105, 140);
-            document.text(`Generated ${new Date().toLocaleString()}  |  Actual stored business data`, 14, 290);
-            document.text(`Page ${page} of ${pages}`, 181, 290);
+
+        document.body.appendChild(reportElement);
+        try {
+            await document.fonts.ready;
+            const canvas = await html2canvas(reportElement, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                logging: false,
+                useCORS: true,
+                windowWidth: 794,
+            });
+            const pdf = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4', compress: true});
+            const margin = 8;
+            const printableWidth = 210 - margin * 2;
+            const printableHeight = 297 - margin * 2 - 5;
+            const slicePixelHeight = Math.floor(canvas.width * (printableHeight / printableWidth));
+            let sourceY = 0;
+            let pageNumber = 1;
+
+            while (sourceY < canvas.height) {
+                const sourceHeight = Math.min(slicePixelHeight, canvas.height - sourceY);
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = sourceHeight;
+                const context = pageCanvas.getContext('2d');
+                if (!context) throw new Error('Unable to create PDF canvas.');
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                context.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+                if (pageNumber > 1) pdf.addPage();
+                const renderedHeight = sourceHeight * printableWidth / canvas.width;
+                pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.94), 'JPEG', margin, margin, printableWidth, renderedHeight, undefined, 'FAST');
+                pdf.setFontSize(7);
+                pdf.setTextColor(100, 70, 125);
+                pdf.text(`Page ${pageNumber}`, 195, 292, {align: 'right'});
+                sourceY += sourceHeight;
+                pageNumber++;
+            }
+            pdf.save(`ape-kade-report-${mode}-${isoDate(now)}.pdf`);
+        } finally {
+            reportElement.remove();
         }
-        document.save(`ape-kade-report-${mode}-${isoDate(now)}.pdf`);
     }
 
     function exportCsv() {
