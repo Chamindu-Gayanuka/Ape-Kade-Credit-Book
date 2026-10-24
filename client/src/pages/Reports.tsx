@@ -200,12 +200,36 @@ export default function Reports() {
             const margin = 8;
             const printableWidth = 210 - margin * 2;
             const printableHeight = 297 - margin * 2 - 5;
-            const slicePixelHeight = Math.floor(canvas.width * (printableHeight / printableWidth));
+            const maximumSliceHeight = Math.floor(canvas.width * (printableHeight / printableWidth));
+
+            // Convert semantic element positions into canvas pixels. Page boundaries are
+            // then moved to the beginning of a heading or table row, preventing text and
+            // rows from being cut between two PDF pages.
+            const reportBounds = reportElement.getBoundingClientRect();
+            const scaleY = canvas.height / reportBounds.height;
+            const breakPoints = Array.from(reportElement.querySelectorAll('h2, tbody tr'))
+                .map(element => Math.round((element.getBoundingClientRect().top - reportBounds.top) * scaleY))
+                .filter(position => position > 0 && position < canvas.height)
+                .sort((first, second) => first - second);
+
             let sourceY = 0;
             let pageNumber = 1;
-
             while (sourceY < canvas.height) {
-                const sourceHeight = Math.min(slicePixelHeight, canvas.height - sourceY);
+                const maximumEnd = Math.min(sourceY + maximumSliceHeight, canvas.height);
+                let sliceEnd = maximumEnd;
+
+                if (maximumEnd < canvas.height) {
+                    // Keep enough content on each page while selecting the final safe break
+                    // before the physical page boundary.
+                    const minimumUsefulEnd = sourceY + Math.floor(maximumSliceHeight * 0.45);
+                    const safeBreaks = breakPoints.filter(position =>
+                        position >= minimumUsefulEnd && position <= maximumEnd - 8,
+                    );
+                    if (safeBreaks.length) sliceEnd = safeBreaks[safeBreaks.length - 1];
+                }
+
+                if (sliceEnd <= sourceY) sliceEnd = maximumEnd;
+                const sourceHeight = sliceEnd - sourceY;
                 const pageCanvas = document.createElement('canvas');
                 pageCanvas.width = canvas.width;
                 pageCanvas.height = sourceHeight;
@@ -213,14 +237,22 @@ export default function Reports() {
                 if (!context) throw new Error('Unable to create PDF canvas.');
                 context.fillStyle = '#ffffff';
                 context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-                context.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+                context.drawImage(
+                    canvas,
+                    0, sourceY, canvas.width, sourceHeight,
+                    0, 0, canvas.width, sourceHeight,
+                );
+
                 if (pageNumber > 1) pdf.addPage();
                 const renderedHeight = sourceHeight * printableWidth / canvas.width;
-                pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.94), 'JPEG', margin, margin, printableWidth, renderedHeight, undefined, 'FAST');
+                pdf.addImage(
+                    pageCanvas.toDataURL('image/jpeg', 0.94),
+                    'JPEG', margin, margin, printableWidth, renderedHeight, undefined, 'FAST',
+                );
                 pdf.setFontSize(7);
                 pdf.setTextColor(100, 70, 125);
                 pdf.text(`Page ${pageNumber}`, 195, 292, {align: 'right'});
-                sourceY += sourceHeight;
+                sourceY = sliceEnd;
                 pageNumber++;
             }
             pdf.save(`ape-kade-report-${mode}-${isoDate(now)}.pdf`);
