@@ -4,7 +4,7 @@ import {Transaction} from '../models/Transaction.js';
 import {TransactionCorrection} from '../models/TransactionCorrection.js';
 import {Customer} from '../models/Customer.js';
 import {Category} from '../models/Category.js';
-import {authenticateUser, requireAdmin} from '../middleware/auth.js';
+import {authenticateUser} from '../middleware/auth.js';
 import {audit} from '../services/audit.js';
 import {amountView, balanceCents} from '../services/balance.js';
 import {runAtomic} from '../services/atomic.js';
@@ -132,7 +132,104 @@ router.get('/:id', asyncHandler(async (req, res) => {
     res.json(amountView(transaction));
 }));
 
-router.post('/:id/void', requireAdmin, asyncHandler(async (req, res) => {
+router.put('/:id', asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) throw new AppError(400, 'Invalid transaction ID.');
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) throw new AppError(404, 'Transaction not found.');
+    if (transaction.status !== 'ACTIVE') throw new AppError(400, 'Only active transactions can be edited.');
+
+    const before = transaction.toObject();
+    const nextType = req.body.transactionType ?? transaction.transactionType;
+    if (!['CREDIT', 'PAYMENT'].includes(nextType)) {
+        throw new AppError(400, 'Transaction type must be CREDIT or PAYMENT.');
+    }
+    const nextCustomerId = req.body.customerId ?? transaction.customerId;
+    if (!mongoose.isValidObjectId(nextCustomerId) || !await Customer.exists({_id: nextCustomerId})) {
+        throw new AppError(400, 'Valid customer is required.');
+    }
+    const nextCategoryId = req.body.categoryId ?? transaction.categoryId;
+    if (nextType === 'CREDIT' && (!mongoose.isValidObjectId(nextCategoryId) ||
+        !await Category.exists({_id: nextCategoryId, status: 'ACTIVE'}))) {
+        throw new AppError(400, 'Valid category is required for credit.');
+    }
+    const nextMethod = req.body.paymentMethod ?? transaction.paymentMethod ?? 'Cash';
+    if (nextType === 'PAYMENT' && !['Cash', 'Bank Transfer', 'Other'].includes(nextMethod)) {
+        throw new AppError(400, 'Valid payment method is required.');
+    }
+    const editedAmount = req.body.amount !== undefined ? cents(req.body.amount) : transaction.amountCents;
+    let editedDate = transaction.createdAt;
+    if (req.body.createdAt !== undefined) {
+        editedDate = new Date(req.body.createdAt);
+        if (Number.isNaN(editedDate.getTime())) throw new AppError(400, 'Invalid transaction date.');
+    }
+
+    await runAtomic(async session => {
+        try {
+            transaction.customerId = new mongoose.Types.ObjectId(String(nextCustomerId));
+            transaction.transactionType = nextType;
+            transaction.categoryId = nextType === 'CREDIT' ? new mongoose.Types.ObjectId(String(nextCategoryId)) : null;
+            transaction.paymentMethod = nextType === 'PAYMENT' ? nextMethod : null;
+            transaction.amountCents = editedAmount;
+            transaction.description = req.body.description ?? transaction.description;
+            transaction.referenceNumber = req.body.referenceNumber ?? transaction.referenceNumber;
+            transaction.notes = req.body.notes ?? transaction.notes;
+            transaction.createdAt = editedDate;
+            await transaction.save(session ? {session} : {});
+            await audit(
+                req.user!.id, 'TRANSACTION_UPDATED', 'Transaction', transaction._id,
+                `Transaction ${transaction.transactionCode} updated`,
+                {before, after: transaction.toObject(), reason: String(req.body.reason || '').trim()}, req.ip, session,
+            );
+        } catch (error) {
+            if (!session) {
+                transaction.set(before);
+                await transaction.save();
+            }
+            throw error;
+        }
+    });
+
+    const updated = await Transaction.findById(transaction._id)
+        .populate('customerId', 'name customerCode').populate('categoryId', 'name')
+        .populate('createdBy', 'fullName username').lean();
+    res.json(amountView(updated));
+}));
+
+router.delete('/:id', asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) throw new AppError(400, 'Invalid transaction ID.');
+    const reason = typeof req.body.reason === 'string' ? req.body.reason.trim() : '';
+    if (reason.length < 5) throw new AppError(400, 'A deletion reason of at least 5 characters is required.');
+    const transaction = await Transaction.findById(req.params.id).lean();
+    if (!transaction) throw new AppError(404, 'Transaction not found.');
+    const corrections = await TransactionCorrection.find({
+        $or: [{originalTransactionId: transaction._id}, {correctingTransactionId: transaction._id}],
+    }).lean();
+
+    await runAtomic(async session => {
+        try {
+            await TransactionCorrection.deleteMany({
+                $or: [{originalTransactionId: transaction._id}, {correctingTransactionId: transaction._id}],
+            }, session ? {session} : {});
+            await Transaction.deleteOne({_id: transaction._id}, session ? {session} : {});
+            await audit(
+                req.user!.id, 'TRANSACTION_DELETED', 'Transaction', transaction._id,
+                `Transaction ${transaction.transactionCode} permanently deleted`,
+                {reason, deletedTransaction: transaction, deletedCorrections: corrections.length}, req.ip, session,
+            );
+        } catch (error) {
+            if (!session) {
+                await Transaction.collection.replaceOne({_id: transaction._id}, transaction as any, {upsert: true});
+                if (corrections.length) await TransactionCorrection.collection.bulkWrite(corrections.map(document => ({
+                    replaceOne: {filter: {_id: document._id}, replacement: document as any, upsert: true},
+                })));
+            }
+            throw error;
+        }
+    });
+    res.json({message: 'Transaction permanently deleted.'});
+}));
+
+router.post('/:id/void', asyncHandler(async (req, res) => {
     if (!req.body.reason?.trim()) throw new AppError(400, 'Void reason is required.');
     if (!mongoose.isValidObjectId(req.params.id)) throw new AppError(400, 'Invalid transaction ID.');
     const transaction = await Transaction.findById(req.params.id);
@@ -166,7 +263,7 @@ router.post('/:id/void', requireAdmin, asyncHandler(async (req, res) => {
     res.json(amountView(transaction.toObject()));
 }));
 
-router.post('/:id/correct', requireAdmin, asyncHandler(async (req, res) => {
+router.post('/:id/correct', asyncHandler(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) throw new AppError(400, 'Invalid transaction ID.');
     const original = await Transaction.findById(req.params.id);
     if (!original) throw new AppError(404, 'Transaction not found.');

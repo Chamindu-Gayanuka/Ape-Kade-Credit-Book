@@ -1,7 +1,13 @@
 @tailwind base; @tailwind components; @tailwind utilities;
 @layer base {
+    html, body, #root {
+        max-width: 100%;
+        min-height: 100%;
+        overflow-x: hidden
+    }
+
     body {
-        @apply bg-[#f7f8f5] text-ink antialiased
+        @apply bg-pink_orchid-900 text-ink antialiased
     }
 
     input, select, textarea {
@@ -11,19 +17,33 @@
     button {
         @apply transition
     }
+
+    select.input {
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236800a9' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right .9rem center;
+        background-size: 1rem;
+        padding-right: 2.75rem
+    }
+
+    .dark select.input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23c77dff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    }
 }
 
 @layer components {
     .card {
-        @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft
+        @apply rounded-2xl border border-pastel_mauve_6-600 bg-white p-5 shadow-soft
     }
 
     .label {
-        @apply mb-1.5 block text-sm font-semibold text-slate-700
+        @apply mb-1.5 block text-sm font-semibold text-pastel_mauve_6-100
     }
 
     .input {
-        @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm focus:border-forest-500 focus:ring-2 focus:ring-forest-100
+        @apply w-full rounded-xl border border-periwinkle-600 bg-white px-3.5 py-3 text-sm focus:border-pastel_mauve_5-300 focus:ring-2 focus:ring-pastel_mauve_5-600
     }
 
     .btn {
@@ -31,11 +51,11 @@
     }
 
     .btn-primary {
-        @apply btn bg-forest-600 text-white hover:bg-forest-700
+        @apply btn bg-pastel_mauve_5-300 text-white hover:bg-pastel_mauve_5-200
     }
 
     .btn-secondary {
-        @apply btn border border-slate-300 bg-white hover:bg-slate-50
+        @apply btn border border-periwinkle-600 bg-white hover:bg-pastel_mauve_6-900
     }
 
     .badge {
@@ -43,134 +63,221 @@
     }
 
     .th {
-        @apply px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500
+        @apply px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-pastel_mauve_6-200
     }
 
     .td {
-        @apply border-t border-slate-100 px-4 py-3 text-sm
+        @apply border-t border-pastel_mauve_6-700 px-4 py-3 text-sm
+    }
+}
+
+@layer base {
+    :root {
+        --chart-credit: #461873;
+        --chart-advance: #cb5df1;
+        --chart-grid: #eabffa;
+        --chart-accent: #6910a8;
+        --chart-1: #461873;
+        --chart-2: #58148e;
+        --chart-3: #6910a8;
+        --chart-4: #8c07dd;
+        --chart-5: #9f21e3;
+        --chart-6: #b333e9;
+        --chart-7: #cb5df1;
+        --chart-8: #dc93f6
+    }
+
+    .dark {
+        --chart-credit: #9d4edd;
+        --chart-advance: #c77dff;
+        --chart-grid: #5a189a;
+        --chart-accent: #7b2cbf;
+        --chart-1: #9d4edd;
+        --chart-2: #c77dff;
+        --chart-3: #7b2cbf;
+        --chart-4: #5a189a;
+        --chart-5: #e0aaff;
+        --chart-6: #8843ff;
+        --chart-7: #aa50ff;
+        --chart-8: #d5a7ff
     }
 }
 
 @layer utilities {
     .dark body {
-        background: #0a110e;
-        color: #e7eee9
+        background: #10002b;
+        color: #f4e5ff
     }
 
     .dark .card {
-        border-color: #25342d;
-        background: #111c18;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, .2)
+        border-color: #3c096c;
+        background: #240046;
+        box-shadow: 0 8px 30px rgba(3, 0, 8, .35)
     }
 
     .dark .input {
-        border-color: #33463d;
-        background: #0d1713;
-        color: #e7eee9
+        border-color: #5a189a;
+        background-color: #16002b;
+        color: #f4e5ff
     }
 
     .dark .input::placeholder {
-        color: #718078
+        color: #bd8ced
     }
 
     .dark .input:focus {
-        border-color: #4f9b70;
-        --tw-ring-color: #244b35
+        border-color: #c77dff;
+        --tw-ring-color: #7b2cbf
     }
 
     .dark .label, .dark .text-slate-700 {
-        color: #c7d2cc
+        color: #ecdcf8
     }
 
     .dark .btn-secondary {
-        border-color: #34463e;
-        background: #14211b;
-        color: #e7eee9
+        border-color: #5a189a;
+        background: #3c096c;
+        color: #f4e5ff
     }
 
     .dark .btn-secondary:hover {
-        background: #1b2b24
+        background: #5a189a
     }
 
     .dark .bg-white {
-        background-color: #111c18
+        background-color: #240046
     }
 
     .dark header {
-        border-color: #25342d;
-        background: rgba(17, 28, 24, .92)
+        border-color: #3c096c;
+        background: rgba(36, 0, 70, .94)
     }
 
     .dark .border-slate-200, .dark .border-slate-100 {
-        border-color: #25342d
+        border-color: #3c096c
     }
 
     .dark .border-t {
-        border-color: #25342d
+        border-color: #3c096c
     }
 
     .dark .divide-y > :not([hidden]) ~ :not([hidden]) {
-        border-color: #25342d
+        border-color: #3c096c
     }
 
     .dark .text-slate-400 {
-        color: #829189
+        color: #bd8ced
     }
 
     .dark .text-slate-500 {
-        color: #9aaaa1
+        color: #caa5eb
     }
 
     .dark .text-slate-600 {
-        color: #b4c0ba
+        color: #d8b9f2
     }
 
     .dark .bg-slate-50 {
-        background-color: #17231e
+        background-color: #300757
     }
 
     .dark .hover\:bg-slate-50:hover {
-        background-color: #1b2b24
+        background-color: #3c096c
     }
 
     .dark .bg-forest-50 {
-        background-color: #172b21
+        background-color: #3c096c
+    }
+
+    .dark .bg-violet-50 {
+        background-color: #300757
     }
 
     .dark .bg-emerald-50 {
-        background-color: #10281d
+        background-color: #300757
     }
 
     .dark .bg-red-50 {
-        background-color: #32191a
+        background-color: #401365
     }
 
     .dark .bg-amber-50 {
-        background-color: #302516
+        background-color: #47137c
     }
 
     .dark .bg-blue-50 {
-        background-color: #152438
+        background-color: #240541
     }
 
     .dark .bg-rose-50 {
-        background-color: #311920
+        background-color: #401365
     }
 
     .dark table thead {
-        background: #0e1814
+        background: #16002b
     }
 
     .dark .td {
-        border-color: #25342d
+        border-color: #3c096c
     }
 
-    .dark [class*="bg-[#f7f8f5]"] {
-        background: #0a110e
+    .app-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #9d4edd transparent
+    }
+
+    .app-scrollbar::-webkit-scrollbar {
+        width: 6px
+    }
+
+    .app-scrollbar::-webkit-scrollbar-track {
+        background: transparent
+    }
+
+    .app-scrollbar::-webkit-scrollbar-thumb {
+        background: #9d4edd;
+        border-radius: 999px
+    }
+
+    main, .card, main .grid > * {
+        min-width: 0
+    }
+
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: #d8bbff transparent
     }
 
     html, body, .card, .input, header, .btn-secondary {
         transition: background-color .2s ease, color .2s ease, border-color .2s ease
+    }
+}
+
+@media (max-width: 639px) {
+    .card {
+        border-radius: 1rem;
+        padding: 1rem
+    }
+
+    .input {
+        min-height: 3rem;
+        font-size: 16px
+    }
+
+    select.input {
+        background-position: right .8rem center;
+        padding-right: 2.5rem
+    }
+
+    .btn {
+        min-height: 2.75rem;
+        padding-left: .85rem;
+        padding-right: .85rem
+    }
+
+    .recharts-responsive-container {
+        min-width: 0 !important
     }
 }
 
@@ -185,13 +292,13 @@
 
     body {
         background: white !important;
-        color: #17231d !important
+        color: #240046 !important
     }
 
     .receipt {
         box-shadow: none !important;
         border: 0 !important;
         background: white !important;
-        color: #17231d !important
+        color: #240046 !important
     }
 }

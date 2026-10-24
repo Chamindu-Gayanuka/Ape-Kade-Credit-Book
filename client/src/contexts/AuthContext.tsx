@@ -1,23 +1,62 @@
-import {createContext, useContext, useEffect, useState, type ReactNode} from 'react';
+import {createContext, type ReactNode, useContext, useEffect, useState} from 'react';
 import {api} from '../services/api';
 import type {User} from '../types';
 
-const C = createContext<any>(null);
+type AuthContextValue = {
+    user: User | null;
+    loading: boolean;
+    setUser: (user: User | null) => void;
+    login: (username: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({children}: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null), [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
-        api.get('/auth/me').then(r => setUser(r.data.user)).catch(() => setUser(null)).finally(() => setLoading(false))
+        let active = true;
+        api.get('/auth/me')
+            .then(response => {
+                if (active) setUser(response.data.user);
+            })
+            .catch(() => {
+                if (active) setUser(null);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+        return () => {
+            active = false;
+        };
     }, []);
-    const login = async (username: string, password: string) => {
+
+    async function login(username: string, password: string) {
         const {data} = await api.post('/auth/login', {username, password});
-        setUser(data.user)
-    };
-    const logout = async () => {
-        await api.post('/auth/logout');
-        setUser(null)
-    };
-    return <C.Provider value={{user, setUser, loading, login, logout}}>{children}</C.Provider>
+        setUser(data.user);
+    }
+
+    async function logout() {
+        // Clear local authentication regardless of API/network state, then perform a
+        // hard navigation so no protected child component can remain mounted.
+        setUser(null);
+        setLoading(false);
+        try {
+            await api.post('/auth/logout');
+        } catch { /* session may already be expired */
+        }
+        window.location.replace('/login');
+    }
+
+    return <AuthContext.Provider value={{user, setUser, loading, login, logout}}>
+        {children}
+    </AuthContext.Provider>;
 }
 
-export const useAuth = () => useContext(C);
+export function useAuth() {
+    const value = useContext(AuthContext);
+    if (!value) throw new Error('useAuth must be used inside AuthProvider');
+    return value;
+}

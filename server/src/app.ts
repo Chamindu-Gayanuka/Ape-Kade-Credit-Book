@@ -13,6 +13,7 @@ import dashboard from './routes/dashboard.js';
 import reports from './routes/reports.js';
 import users from './routes/users.js';
 import admin from './routes/admin.js';
+import backup from './routes/backup.js';
 import {AppError} from './utils/http.js';
 
 const app = express();
@@ -21,6 +22,12 @@ app.use(helmet());
 const allowedOrigins = new Set([
     env.CLIENT_URL.replace(/\/$/, ''),
     ...(env.VERCEL_URL ? [`https://${env.VERCEL_URL}`] : []),
+    ...(env.NODE_ENV === 'development' ? [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174',
+    ] : []),
 ]);
 app.use(cors({
     credentials: true,
@@ -31,7 +38,7 @@ app.use(cors({
         return callback(new AppError(403, 'Origin is not allowed.'));
     },
 }));
-app.use(express.json({limit: '100kb'}));
+app.use(express.json({limit: '4mb'}));
 app.use(cookieParser());
 app.use(mongoSanitize());
 if (env.NODE_ENV !== 'test') app.use(morgan('combined'));
@@ -44,6 +51,7 @@ app.use('/api/categories', categories);
 app.use('/api/dashboard', dashboard);
 app.use('/api/reports', reports);
 app.use('/api/users', users);
+app.use('/api/backup', backup);
 app.use('/api', admin);
 app.use((_req, _res, next) => next(new AppError(404, 'Route not found.')));
 

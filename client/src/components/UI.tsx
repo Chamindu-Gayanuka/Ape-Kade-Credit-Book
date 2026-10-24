@@ -1,4 +1,4 @@
-import {LoaderCircle, Inbox, ChevronLeft, ChevronRight} from 'lucide-react';
+import {ChevronLeft, ChevronRight, Inbox, LoaderCircle} from 'lucide-react';
 import type {ReactNode} from 'react';
 
 export const Spinner = () => <div className="flex min-h-48 items-center justify-center"><LoaderCircle
@@ -12,7 +12,7 @@ export function Empty({title, body, action}: { title: string; body: string; acti
 }
 
 export const Status = ({value}: { value: string }) => <span
-    className={`badge ${value === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : value === 'VOID' || value === 'INACTIVE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{value}</span>;
+    className={`badge ${value === 'ACTIVE' ? 'bg-pastel_mauve_4-900 text-pastel_mauve_5-200 dark:bg-indigo_velvet-300 dark:text-mauve_magic-900' : value === 'VOID' || value === 'INACTIVE' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{value}</span>;
 
 export function Pagination({page, pages, onChange}: { page: number; pages: number; onChange: (p: number) => void }) {
     if (pages <= 1) return null;
@@ -26,8 +26,9 @@ export function Pagination({page, pages, onChange}: { page: number; pages: numbe
 }
 
 export function PageTitle({title, subtitle, action}: { title: string; subtitle?: string; action?: ReactNode }) {
-    return <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">{title}</h1>{subtitle &&
-            <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}</div>
-        {action}</div>
+    return <div className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-3 sm:mb-6">
+        <div className="min-w-0"><h1
+            className="break-words text-2xl font-extrabold tracking-tight md:text-3xl">{title}</h1>{subtitle &&
+            <p className="mt-1 break-words text-sm text-slate-500">{subtitle}</p>}</div>
+        {action && <div className="w-full sm:w-auto">{action}</div>}</div>
 }
