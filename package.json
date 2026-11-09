@@ -1,15 +1,30 @@
 {
-  "name": "ape-kade-credit-book",
+  "name": "ape-kade-client",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "node init && concurrently \"npm:dev:server\" \"npm:dev:client\"",
-    "dev:server": "node init && npm --prefix server run dev",
-    "dev:client": "node init && npm --prefix client run dev",
-    "build": "node init && npm --prefix server run build && npm --prefix client run build",
-    "seed": "npm --prefix server run seed",
-    "typecheck": "npm --prefix server run typecheck && npm --prefix client run typecheck"
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
-    "concurrently": "^9.0.1"
+  "dependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "axios": "^1.7.7",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
+    "lucide-react": "^0.468.0",
+    "postcss": "^8.4.49",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.1.1",
+    "recharts": "^2.13.3",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.1",
+    "xlsx": "^0.18.5"
   }
 }
