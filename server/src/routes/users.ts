@@ -1,5 +1,6 @@
 import {Router} from 'express';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import {User} from '../models/User.js';
 import {AuditLog} from '../models/AuditLog.js';
 import {authenticateUser, requireAdmin} from '../middleware/auth.js';
@@ -59,12 +60,10 @@ const status = (value: string, action: string) => asyncHandler(async (req, res) 
 });
 r.post('/:id/deactivate', status('INACTIVE', 'USER_DEACTIVATED'));
 r.post('/:id/activate', status('ACTIVE', 'USER_ACTIVATED'));
-   import mongoose from 'mongoose';
-   
-   r.get('/:id/activity', asyncHandler(async (req, res) => {
-     if (!mongoose.isValidObjectId(req.params.id)) {
-       return res.status(400).json({ message: 'Invalid user id' });
-     }
-     res.json(await AuditLog.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(100));
-   }));
+r.get('/:id/activity', asyncHandler(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid user id' });
+    }
+    res.json(await AuditLog.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(100));
+}));
 export default r;
