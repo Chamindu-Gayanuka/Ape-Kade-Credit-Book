@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install && npm --prefix server install && npm --prefix client install",
-  "buildCommand": "npm run build && if [ -n \"$MONGODB_URI\" ]; then npm --prefix server run seed; else echo 'Skipping seed: no MONGODB_URI'; fi",
+  "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
   "functions": {
     "api/index.js": {
@@ -9,7 +9,6 @@
       "includeFiles": "server/dist/**"
     }
   },
-
   "rewrites": [
     {
       "source": "/api/:path*",
