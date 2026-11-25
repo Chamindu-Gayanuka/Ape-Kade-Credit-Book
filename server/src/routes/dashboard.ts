@@ -3,17 +3,27 @@ import {authenticateUser} from '../middleware/auth.js';
 import {Customer} from '../models/Customer.js';
 import {Transaction} from '../models/Transaction.js';
 import {Category} from '../models/Category.js';
-import {asyncHandler} from '../utils/http.js';
+import {AppError, asyncHandler} from '../utils/http.js';
+import {type DashboardPeriod, dashboardPeriodBounds} from '../utils/dashboardPeriod.js';
 
 const router = Router();
 router.use(authenticateUser);
 
-router.get('/', asyncHandler(async (_req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
+    const readPeriod = (value: unknown): DashboardPeriod => {
+        if (value === undefined) return 'month';
+        if (value === 'week' || value === 'month' || value === 'year') return value;
+        throw new AppError(400, 'Period must be week, month or year.');
+    };
+    const categoryPeriod = readPeriod(req.query.categoryPeriod);
+    const summaryPeriod = readPeriod(req.query.summaryPeriod);
     const now = new Date();
-    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const month = new Date(now.getFullYear(), now.getMonth(), 1);
+    const day = dashboardPeriodBounds('day', now);
+    const month = dashboardPeriodBounds('month', now);
+    const categoryRange = dashboardPeriodBounds(categoryPeriod, now);
+    const summaryRange = dashboardPeriodBounds(summaryPeriod, now);
 
-    const [totalCustomers, balanceSummary, today, monthly, categories, customerBalances] = await Promise.all([
+    const [totalCustomers, balanceSummary, today, monthly, periodTotals, categories, customerBalances] = await Promise.all([
         Customer.countDocuments({status: 'ACTIVE'}),
         Transaction.aggregate([
             {$match: {status: 'ACTIVE'}},
@@ -42,11 +52,15 @@ router.get('/', asyncHandler(async (_req, res) => {
             },
         ]),
         Transaction.aggregate([
-            {$match: {status: 'ACTIVE', createdAt: {$gte: day}}},
+            {$match: {status: 'ACTIVE', createdAt: {$gte: day.start, $lt: day.end}}},
             {$group: {_id: '$transactionType', total: {$sum: '$amountCents'}}},
         ]),
         Transaction.aggregate([
-            {$match: {status: 'ACTIVE', createdAt: {$gte: month}}},
+            {$match: {status: 'ACTIVE', createdAt: {$gte: month.start, $lt: month.end}}},
+            {$group: {_id: '$transactionType', total: {$sum: '$amountCents'}}},
+        ]),
+        Transaction.aggregate([
+            {$match: {status: 'ACTIVE', createdAt: {$gte: summaryRange.start, $lt: summaryRange.end}}},
             {$group: {_id: '$transactionType', total: {$sum: '$amountCents'}}},
         ]),
         Category.aggregate([
@@ -61,6 +75,8 @@ router.get('/', asyncHandler(async (_req, res) => {
                                         {$eq: ['$categoryId', '$$categoryId']},
                                         {$eq: ['$status', 'ACTIVE']},
                                         {$eq: ['$transactionType', 'CREDIT']},
+                                        {$gte: ['$createdAt', categoryRange.start]},
+                                        {$lt: ['$createdAt', categoryRange.end]},
                                     ]
                                 }
                             }
@@ -69,6 +85,8 @@ router.get('/', asyncHandler(async (_req, res) => {
                     ], as: 'summary',
                 }
             },
+            // Do not display categories without active credit in the chosen period.
+            {$match: {'summary.0': {$exists: true}}},
             {$project: {name: 1, total: {$ifNull: [{$first: '$summary.total'}, 0]}}},
         ]),
         Transaction.aggregate([
@@ -122,6 +140,10 @@ router.get('/', asyncHandler(async (_req, res) => {
         todayPayments: value(today, 'PAYMENT'),
         monthCredit: value(monthly, 'CREDIT'),
         monthPayments: value(monthly, 'PAYMENT'),
+        categoryPeriod,
+        summaryPeriod,
+        periodCredit: value(periodTotals, 'CREDIT'),
+        periodPayments: value(periodTotals, 'PAYMENT'),
         categories: categories.map(item => ({name: item.name, total: item.total / 100})),
         highestCreditCustomers,
         highestAdvanceCustomers,

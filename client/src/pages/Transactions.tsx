@@ -1,4 +1,4 @@
-import {type FormEvent, useEffect, useState} from 'react';
+import {type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState} from 'react';
 import {ChevronDown, Edit3, LoaderCircle, Search, ShieldX, SlidersHorizontal, Trash2, X,} from 'lucide-react';
 import {api, message} from '../services/api';
 import {dateTime, money} from '../utils/format';
@@ -23,6 +23,8 @@ export default function Transactions() {
     const [deleteReason, setDeleteReason] = useState('');
     const [deleteBusy, setDeleteBusy] = useState(false);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [customerTotal, setCustomerTotal] = useState(0);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
 
     const load = () => api.get('/transactions', {params: {...filters, page}})
@@ -40,6 +42,7 @@ export default function Transactions() {
             api.get('/categories'),
         ]).then(([customerResponse, categoryResponse]) => {
             setCustomers(customerResponse.data.items);
+            setCustomerTotal(customerResponse.data.total);
             setCategories(categoryResponse.data);
         }).catch(requestError => setError(message(requestError)));
     }, []);
@@ -117,7 +120,7 @@ export default function Transactions() {
             subtitle="Search, filter, edit, change type, void or permanently delete transactions"
         />
 
-        <section className="card min-w-0 overflow-hidden">
+        <section className="card min-w-0">
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12">
                 <label className="min-w-0 sm:col-span-2 xl:col-span-4">
                     <span className="label">Search transactions</span>
@@ -163,13 +166,11 @@ export default function Transactions() {
                                  onChange={(value: string) => updateFilter('from', value)} className="xl:col-span-2"/>
                     <FilterInput label="To date" type="date" value={filters.to}
                                  onChange={(value: string) => updateFilter('to', value)} className="xl:col-span-2"/>
-                    <FilterSelect label="Customer" value={filters.customerId}
-                                  onChange={(value: string) => updateFilter('customerId', value)}
-                                  className="sm:col-span-2 xl:col-span-5">
-                        <option value="">All customers</option>
-                        {customers.map(customer => <option key={customer._id}
-                                                           value={customer._id}>{customer.name} ({customer.customerCode})</option>)}
-                    </FilterSelect>
+                    <CustomerDropdown customers={customers} total={customerTotal} selected={selectedCustomer}
+                                      onSelect={customer => {
+                                          setSelectedCustomer(customer);
+                                          updateFilter('customerId', customer?._id || '');
+                                      }}/>
                     <FilterSelect label="Category" value={filters.categoryId}
                                   onChange={(value: string) => updateFilter('categoryId', value)}
                                   className="sm:col-span-2 xl:col-span-5">
@@ -180,6 +181,7 @@ export default function Transactions() {
                     <div className="flex items-end sm:col-span-2 xl:col-span-2">
                         <button type="button" className="btn-secondary w-full" onClick={() => {
                             setFilters(emptyFilters);
+                            setSelectedCustomer(null);
                             setPage(1);
                         }}>
                             Clear filters
@@ -338,6 +340,162 @@ export default function Transactions() {
                 </form>
             </div>}
     </>;
+}
+
+function CustomerDropdown({customers, total, selected, onSelect}: {
+    customers: Customer[];
+    total: number;
+    selected: Customer | null;
+    onSelect: (customer: Customer | null) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const [matches, setMatches] = useState<Customer[]>([]);
+    const [matchTotal, setMatchTotal] = useState(0);
+    const [busy, setBusy] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    const [activeIndex, setActiveIndex] = useState(-1);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const listId = useId();
+
+    useEffect(() => {
+        if (!open) return;
+        inputRef.current?.focus();
+        const closeOnOutsideClick = (event: PointerEvent) => {
+            if (!containerRef.current?.contains(event.target as Node)) {
+                setOpen(false);
+                setSearch('');
+                setActiveIndex(-1);
+            }
+        };
+        document.addEventListener('pointerdown', closeOnOutsideClick);
+        return () => document.removeEventListener('pointerdown', closeOnOutsideClick);
+    }, [open]);
+
+    useEffect(() => {
+        const query = search.trim();
+        if (!open || !query) {
+            setMatches([]);
+            setBusy(false);
+            setSearchError('');
+            return;
+        }
+        const controller = new AbortController();
+        let active = true;
+        setMatches([]);
+        setMatchTotal(0);
+        setSearchError('');
+        setBusy(true);
+        const timer = setTimeout(() => {
+            api.get('/customers', {params: {search: query, limit: 100}, signal: controller.signal})
+                .then(response => {
+                    if (!active) return;
+                    setMatches(response.data.items);
+                    setMatchTotal(response.data.total);
+                })
+                .catch(error => {
+                    if (active) setSearchError(message(error));
+                })
+                .finally(() => {
+                    if (active) setBusy(false);
+                });
+        }, 250);
+        return () => {
+            active = false;
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [search, open]);
+
+    const options = search.trim() ? matches : customers;
+    const optionCount = options.length + 1; // Includes the All customers option.
+    const activeOptionId = activeIndex >= 0 && activeIndex < optionCount ? `${listId}-option-${activeIndex}` : undefined;
+    useEffect(() => {
+        if (activeOptionId) document.getElementById(activeOptionId)?.scrollIntoView({block: 'nearest'});
+    }, [activeOptionId]);
+
+    function choose(customer: Customer | null) {
+        onSelect(customer);
+        setOpen(false);
+        setSearch('');
+        setActiveIndex(-1);
+        buttonRef.current?.focus();
+    }
+
+    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActiveIndex(current => {
+                if (current < 0 || current >= optionCount) return event.key === 'ArrowDown' ? (search.trim() && options.length ? 1 : 0) : optionCount - 1;
+                return event.key === 'ArrowDown' ? (current + 1) % optionCount : (current + optionCount - 1) % optionCount;
+            });
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            const index = activeIndex >= 0 && activeIndex < optionCount ? activeIndex : (search.trim() && options.length ? 1 : -1);
+            if (index === 0) choose(null);
+            else if (index > 0) choose(options[index - 1]);
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            setOpen(false);
+            setSearch('');
+            setActiveIndex(-1);
+            buttonRef.current?.focus();
+        }
+    }
+
+    const hint = busy ? 'Searching customers…' : searchError ? searchError :
+        search.trim() && matchTotal === 0 ? 'No customers found.' :
+            (search.trim() ? matchTotal : total) > 100 ? 'Showing the first 100 matches. Refine your search.' : '';
+
+    return <div className="min-w-0 sm:col-span-2 xl:col-span-5" ref={containerRef}>
+        <span className="label" id={`${listId}-label`}>Customer</span>
+        <div className="relative min-w-0">
+            <button ref={buttonRef} type="button" aria-labelledby={`${listId}-label ${listId}-value`}
+                    aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined}
+                    className="input flex min-w-0 items-center justify-between gap-2 text-left"
+                    onClick={() => {
+                        if (open) {
+                            setSearch('');
+                            setActiveIndex(-1);
+                        }
+                        setOpen(!open);
+                    }}>
+                <span id={`${listId}-value`}
+                      className="min-w-0 truncate">{selected ? `${selected.name} (${selected.customerCode})` : 'All customers'}</span>
+                <ChevronDown size={18} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}/>
+            </button>
+            {open && <div
+                className="absolute z-30 mt-1 w-full min-w-0 overflow-hidden rounded-xl border border-periwinkle-600 bg-white shadow-xl dark:border-indigo_ink-400 dark:bg-deep_amethyst-500">
+                <div className="relative p-2">
+                    <Search size={18} className="pointer-events-none absolute left-5 top-5 text-slate-400"/>
+                    <input ref={inputRef} className="input min-w-0 pl-10" placeholder="Search name, ID, phone or NIC…"
+                           aria-label="Search customers" role="combobox" aria-expanded="true" aria-controls={listId}
+                           aria-autocomplete="list" aria-activedescendant={activeOptionId}
+                           value={search} onChange={event => {
+                        setSearch(event.target.value);
+                        setActiveIndex(-1);
+                    }}
+                           onKeyDown={handleKeyDown}/>
+                </div>
+                <div id={listId} role="listbox" aria-label="Customers"
+                     className="max-h-60 overflow-y-auto overscroll-contain p-1">
+                    {[null, ...options].map((customer, index) => <div key={customer?._id || 'all'}
+                                                                      id={`${listId}-option-${index}`} role="option"
+                                                                      aria-selected={customer ? selected?._id === customer._id : !selected}
+                                                                      className={`cursor-pointer rounded-lg px-3 py-2 text-sm ${activeIndex === index ? 'bg-pastel_mauve_6-900 dark:bg-indigo_ink-300' : 'hover:bg-pastel_mauve_6-900 dark:hover:bg-indigo_ink-300'}`}
+                                                                      onMouseEnter={() => setActiveIndex(index)}
+                                                                      onMouseDown={event => event.preventDefault()}
+                                                                      onClick={() => choose(customer)}>
+                        {customer ? <><span className="block break-words font-semibold">{customer.name}</span><small
+                            className="text-slate-500">{customer.customerCode}</small></> : 'All customers'}
+                    </div>)}
+                </div>
+                {hint && <p className="px-3 pb-3 pt-1 text-xs text-slate-500" role="status">{hint}</p>}
+            </div>}
+        </div>
+    </div>;
 }
 
 function MobileTransactionCard({transaction, edit, voidTx, deleteTx}: any) {

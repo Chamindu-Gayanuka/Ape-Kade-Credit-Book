@@ -187,7 +187,7 @@ function CustomerRow({customer, edit}: { customer: Customer; edit: () => void })
         <td className={`td font-bold ${customer.advanceBalance > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
             {customer.advanceBalance > 0 ? `Advance ${money(customer.advanceBalance)}` : money(customer.outstandingBalance)}
         </td>
-        <td className="td">{customer.phone || '—'}<small className="block text-slate-500">{customer.nic || '—'}</small>
+        <td className="td">{customer.phone || '-'}<small className="block text-slate-500">{customer.nic || '-'}</small>
         </td>
         <td className="td">{dateTime(customer.createdAt)}</td>
         <td className="td"><Status value={customer.status}/></td>
@@ -222,10 +222,10 @@ function CustomerCard({customer, edit}: { customer: Customer; edit: () => void }
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div className="min-w-0"><span
                     className="flex items-center gap-1 text-[11px] font-bold uppercase text-slate-500"><Phone
-                    size={13}/>Phone</span><span className="mt-1 block break-all">{customer.phone || '—'}</span></div>
+                    size={13}/>Phone</span><span className="mt-1 block break-all">{customer.phone || '-'}</span></div>
                 <div className="min-w-0"><span
                     className="block text-[11px] font-bold uppercase text-slate-500">NIC / ID</span><span
-                    className="mt-1 block break-all">{customer.nic || '—'}</span></div>
+                    className="mt-1 block break-all">{customer.nic || '-'}</span></div>
                 <div className="col-span-2 min-w-0"><span
                     className="flex items-center gap-1 text-[11px] font-bold uppercase text-slate-500"><MapPin
                     size={13}/>Address</span><span
