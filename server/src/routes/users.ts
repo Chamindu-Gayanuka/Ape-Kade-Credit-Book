@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
+import rateLimit from 'express-rate-limit';
 import {User} from '../models/User.js';
 import {AuditLog} from '../models/AuditLog.js';
 import {authenticateUser, requireAdmin} from '../middleware/auth.js';
@@ -8,6 +9,22 @@ import {audit} from '../services/audit.js';
 import {AppError, asyncHandler, pageParams} from '../utils/http.js';
 
 const r = Router();
+// Limit before authentication, which also performs a database lookup.
+const activityLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {message: 'Too many activity requests. Please try again later.'}
+});
+r.get('/:id/activity', activityLimiter, authenticateUser, requireAdmin, asyncHandler(async (req, res) => {
+    const id = req.params.id;
+    if (typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        throw new AppError(400, 'Invalid user id');
+    }
+    const userId = new mongoose.Types.ObjectId(id);
+    res.json(await AuditLog.find({userId}).sort({createdAt: -1}).limit(100));
+}));
 r.use(authenticateUser);
 const fields = 'username fullName role phone email address bio status lastLogin createdAt updatedAt';
 r.get('/profile', asyncHandler(async (req, res) => res.json(await User.findById(req.user!.id).select(fields))));
@@ -60,10 +77,4 @@ const status = (value: string, action: string) => asyncHandler(async (req, res) 
 });
 r.post('/:id/deactivate', status('INACTIVE', 'USER_DEACTIVATED'));
 r.post('/:id/activate', status('ACTIVE', 'USER_ACTIVATED'));
-r.get('/:id/activity', asyncHandler(async (req, res) => {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-        return res.status(400).json({ message: 'Invalid user id' });
-    }
-    res.json(await AuditLog.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(100));
-}));
 export default r;
