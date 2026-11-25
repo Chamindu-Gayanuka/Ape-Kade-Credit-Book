@@ -61,9 +61,11 @@ const status = (value: string, action: string) => asyncHandler(async (req, res) 
 r.post('/:id/deactivate', status('INACTIVE', 'USER_DEACTIVATED'));
 r.post('/:id/activate', status('ACTIVE', 'USER_ACTIVATED'));
 r.get('/:id/activity', asyncHandler(async (req, res) => {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-        return res.status(400).json({ message: 'Invalid user id' });
+    const id = req.params.id;
+    if (typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        throw new AppError(400, 'Invalid user id');
     }
-    res.json(await AuditLog.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(100));
+    const userId = new mongoose.Types.ObjectId(id);
+    res.json(await AuditLog.find({userId}).sort({createdAt: -1}).limit(100));
 }));
 export default r;

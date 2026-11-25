@@ -3,7 +3,7 @@ name: Repo safety scan
 on:
   pull_request:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
 
 permissions:
   contents: read
@@ -59,3 +59,24 @@ jobs:
             fi
           done < <(find . -type f \( -name '*.config.js' -o -name '*.config.cjs' -o -name '*.config.mjs' -o -name '*.config.ts' -o -name '.eslintrc.js' \) -not -path './.git/*' -not -path '*/node_modules/*' -print0)
           exit $bad
+
+      - name: Block unexpected init scripts and hidden source payloads
+        run: |
+          for f in init client/init server/init; do
+            if [ -e "$f" ]; then
+              echo "::error file=$f::Unexpected init script; review before adding"
+              exit 1
+            fi
+          done
+          if grep -nE 'node[[:space:]]+([^[:space:]"&]+/)?init([[:space:]"&]|$)' package.json client/package.json server/package.json; then
+            echo '::error::Package scripts must not execute unexpected init files'
+            exit 1
+          fi
+          bad=0
+          while IFS= read -r -d '' f; do
+            if awk 'length($0) > 5000 { found=1 } END { exit !found }' "$f"; then
+              echo "::error file=$f::Source line longer than 5000 characters; review for hidden code"
+              bad=1
+            fi
+          done < <(find api client/src server/src -type f \( -name '*.js' -o -name '*.ts' -o -name '*.tsx' \) -print0)
+          exit "$bad"
