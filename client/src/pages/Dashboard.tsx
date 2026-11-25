@@ -1,18 +1,8 @@
 import {useEffect, useState} from 'react';
-import {
-    ArrowUpRight,
-    CalendarDays,
-    HandCoins,
-    PiggyBank,
-    Plus,
-    Scale,
-    TrendingUp,
-    Users,
-    WalletCards
-} from 'lucide-react';
+import {ArrowUpRight, HandCoins, PiggyBank, Plus, Scale, TrendingUp, Users, WalletCards} from 'lucide-react';
 import {Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis} from 'recharts';
 import {Link} from 'react-router-dom';
-import {api} from '../services/api';
+import {api, message} from '../services/api';
 import {money} from '../utils/format';
 import {PageTitle, Spinner} from '../components/UI';
 import {useTheme} from '../contexts/ThemeContext';
@@ -31,13 +21,36 @@ const INFOGRAPHIC_CHARTS = [
     '#42c7d9', // cyan
 ];
 
+type DashboardPeriod = 'week' | 'month' | 'year';
+
 export default function Dashboard() {
     const {theme} = useTheme();
     const [data, setData] = useState<any>(null);
+    const [categoryPeriod, setCategoryPeriod] = useState<DashboardPeriod>('month');
+    const [summaryPeriod, setSummaryPeriod] = useState<DashboardPeriod>('month');
+    const [error, setError] = useState('');
+    const [retry, setRetry] = useState(0);
     useEffect(() => {
-        api.get('/dashboard').then(response => setData(response.data));
-    }, []);
-    if (!data) return <Spinner/>;
+        const controller = new AbortController();
+        let active = true;
+        setError('');
+        api.get('/dashboard', {params: {categoryPeriod, summaryPeriod}, signal: controller.signal})
+            .then(response => {
+                if (active) setData(response.data);
+            })
+            .catch(requestError => {
+                if (active) setError(message(requestError));
+            });
+        return () => {
+            active = false;
+            controller.abort();
+        };
+    }, [categoryPeriod, summaryPeriod, retry]);
+    if (!data) return error ? <div className="card text-sm" role="alert">
+        <p>Unable to load the dashboard: {error}</p>
+        <button type="button" className="btn-secondary mt-3" onClick={() => setRetry(value => value + 1)}>Try again
+        </button>
+    </div> : <Spinner/>;
 
     const dark = theme === 'dark';
     const chartColors = INFOGRAPHIC_CHARTS;
@@ -73,39 +86,67 @@ export default function Dashboard() {
             </div>)}
         </div>
 
+        {error && <div className="card mt-4 text-sm text-red-700" role="alert">
+            Could not refresh dashboard data: {error}
+            <button type="button" className="btn-secondary ml-3" onClick={() => setRetry(value => value + 1)}>Try
+                again
+            </button>
+        </div>}
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
-            <div className="card lg:col-span-2">
-                <div className="mb-5 flex items-center justify-between">
-                    <div><h2 className="font-extrabold">Category credit</h2><p className="text-xs text-slate-500">Actual
-                        active credit totals</p></div>
-                    <CalendarDays className="text-slate-300"/></div>
-                <div className="h-72"><ResponsiveContainer><BarChart data={data.categories}><CartesianGrid
-                    vertical={false} stroke={gridColor}/><XAxis dataKey="name" axisLine={false} tickLine={false}/><YAxis
-                    axisLine={false} tickLine={false}/><Tooltip {...tooltip}
-                                                                formatter={(value: any) => money(value)}/><Bar
-                    activeBar={false} dataKey="total"
-                    radius={[8, 8, 0, 0]}>{data.categories.map((_: any, index: number) => <Cell key={index}
-                                                                                                fill={chartColors[index % chartColors.length]}/>)}</Bar></BarChart></ResponsiveContainer>
+            <div className="card min-w-0 lg:col-span-2">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                    <div><h2 className="font-extrabold">Category credit</h2>
+                        <p className="text-xs text-slate-500">Active credit · this {categoryPeriod} · Colombo time</p>
+                    </div>
+                    <PeriodSelect label="Category credit period" value={categoryPeriod} onChange={setCategoryPeriod}/>
                 </div>
+                {data.categoryPeriod !== categoryPeriod ?
+                    <div className="flex h-72 items-center justify-center text-sm text-slate-500"
+                         role="status">{error ? 'Unable to load this period.' : 'Loading category credit…'}</div> :
+                    data.categories.length ? <div className="h-72 min-w-0"><ResponsiveContainer><BarChart
+                            data={data.categories}><CartesianGrid
+                            vertical={false} stroke={gridColor}/><XAxis dataKey="name" axisLine={false} tickLine={false}
+                                                                        tick={{
+                                                                            fill: dark ? '#d9b6f9' : '#5a189a',
+                                                                            fontSize: 12
+                                                                        }}/><YAxis
+                            axisLine={false} tickLine={false}
+                            tick={{fill: dark ? '#d9b6f9' : '#5a189a', fontSize: 12}}/><Tooltip {...tooltip}
+                                                                                                formatter={(value: any) => money(value)}/><Bar
+                            activeBar={false} dataKey="total"
+                            radius={[8, 8, 0, 0]}>{data.categories.map((_: any, index: number) => <Cell key={index}
+                                                                                                        fill={chartColors[index % chartColors.length]}/>)}</Bar></BarChart></ResponsiveContainer>
+                        </div> :
+                        <p className="flex h-72 items-center justify-center text-center text-sm text-slate-500">No
+                            active credit transactions in this {categoryPeriod}.</p>}
             </div>
-            <div className="card">
-                <h2 className="font-extrabold">This month</h2><p className="mb-6 text-xs text-slate-500">Current month
-                performance</p>
-                <div className="space-y-4">
-                    <div className="rounded-xl bg-pastel_mauve_4-900 p-4 dark:bg-indigo_ink-300"><span
-                        className="text-sm text-slate-500">Credit</span><strong
-                        className="mt-1 block text-xl">{money(data.monthCredit)}</strong></div>
-                    <div className="rounded-xl bg-pastel_mauve_1-900 p-4 dark:bg-lavender_purple-200"><span
-                        className="text-sm text-slate-500">Payments</span><strong
-                        className="mt-1 block text-xl">{money(data.monthPayments)}</strong></div>
-                    <div className="flex justify-between border-t pt-4"><span className="text-sm text-slate-500">Active debtors</span><b>{data.customersWithOutstanding}</b>
+            <div className="card min-w-0">
+                <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                    <div><h2 className="font-extrabold">This {summaryPeriod}</h2>
+                        <p className="text-xs text-slate-500">Current {summaryPeriod} performance · Colombo time</p>
                     </div>
-                    <div className="flex justify-between border-t pt-4"><span className="text-sm text-slate-500">Customer advances</span><b
-                        className="text-pastel_mauve_5-200 dark:text-mauve_magic-500">{money(data.totalAdvances)}</b>
-                    </div>
-                    <div className="flex justify-between border-t pt-4"><span className="text-sm text-slate-500">Customers in advance</span><b>{data.customersWithAdvances}</b>
-                    </div>
+                    <PeriodSelect label="Performance period" value={summaryPeriod} onChange={setSummaryPeriod}/>
                 </div>
+                {data.summaryPeriod !== summaryPeriod ?
+                    <div className="py-8 text-center text-sm text-slate-500" role="status">
+                        {error ? 'Unable to load this period.' : 'Loading performance…'}
+                    </div> : <div className="space-y-4">
+                        <div className="rounded-xl bg-pastel_mauve_4-900 p-4 dark:bg-indigo_ink-300"><span
+                            className="text-sm text-slate-500">Credit</span><strong
+                            className="mt-1 block text-xl">{money(data.periodCredit)}</strong></div>
+                        <div className="rounded-xl bg-pastel_mauve_1-900 p-4 dark:bg-lavender_purple-200"><span
+                            className="text-sm text-slate-500">Payments</span><strong
+                            className="mt-1 block text-xl">{money(data.periodPayments)}</strong></div>
+                        <p className="pt-1 text-xs font-bold uppercase tracking-wide text-slate-500">Current balances ·
+                            all activity</p>
+                        <div className="flex justify-between border-t pt-4"><span className="text-sm text-slate-500">Active debtors</span><b>{data.customersWithOutstanding}</b>
+                        </div>
+                        <div className="flex justify-between border-t pt-4"><span className="text-sm text-slate-500">Customer advances</span><b
+                            className="text-pastel_mauve_5-200 dark:text-mauve_magic-500">{money(data.totalAdvances)}</b>
+                        </div>
+                        <div className="flex justify-between border-t pt-4"><span className="text-sm text-slate-500">Customers in advance</span><b>{data.customersWithAdvances}</b>
+                        </div>
+                    </div>}
             </div>
         </div>
 
@@ -146,4 +187,20 @@ export default function Dashboard() {
                 or recording a transaction.</p></div>
             <Link to="/customers" className="btn-primary ml-auto">Add first customer</Link></div>}
     </>;
+}
+
+function PeriodSelect({label, value, onChange}: {
+    label: string;
+    value: DashboardPeriod;
+    onChange: (period: DashboardPeriod) => void;
+}) {
+    return <label className="block w-32 max-w-full">
+        <span className="sr-only">{label}</span>
+        <select className="input py-2" value={value}
+                onChange={event => onChange(event.target.value as DashboardPeriod)}>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+            <option value="year">Year</option>
+        </select>
+    </label>;
 }

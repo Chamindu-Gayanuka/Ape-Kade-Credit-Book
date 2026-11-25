@@ -109,33 +109,70 @@ export default function CustomerDetail() {
             </div>
         </div>
 
-        <div className="card mt-4">
+        <div className="card mt-4 min-w-0">
             <h2 className="mb-4 font-extrabold">Transaction history</h2>
             {!transactions.length
                 ? <Empty title="No transactions found." body="Credit and payment transactions will appear here."/>
-                : <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                        <tr>
-                            <th className="th">ID / Date</th>
-                            <th className="th">Type</th>
-                            <th className="th">Category</th>
-                            <th className="th">Amount</th>
-                            <th className="th">Status</th>
-                        </tr>
-                        </thead>
-                        <tbody>{transactions.map(transaction => <tr key={transaction._id}>
-                            <td className="td"><b>{transaction.transactionCode}</b>
-                                <small className="block text-slate-500">{dateTime(transaction.createdAt)}</small></td>
-                            <td className="td">{transaction.transactionType}</td>
-                            <td className="td">{transaction.categoryId?.name || '-'}</td>
-                            <td className={`td font-bold ${transaction.transactionType === 'PAYMENT' ? 'text-pastel_mauve_5-200 dark:text-lavender_purple-600' : 'text-rose-600'}`}>
-                                {money(transaction.amount)}
-                            </td>
-                            <td className="td"><Status value={transaction.status}/></td>
-                        </tr>)}</tbody>
-                    </table>
-                </div>}
+                : <>
+                    <div className="grid min-w-0 gap-3 xl:hidden">
+                        {transactions.map(transaction => <article key={transaction._id}
+                                                                  className="min-w-0 overflow-hidden rounded-2xl border border-pastel_mauve_6-700 bg-white shadow-sm dark:border-indigo_ink-400 dark:bg-deep_amethyst-500">
+                            <div
+                                className="flex min-w-0 items-start justify-between gap-3 border-b border-pastel_mauve_6-700 p-4 dark:border-indigo_ink-400">
+                                <div className="min-w-0">
+                                    <span
+                                        className="block text-[11px] font-bold uppercase tracking-wide text-slate-500">Transaction ID</span>
+                                    <b className="mt-1 block break-all text-sm">{transaction.transactionCode}</b>
+                                </div>
+                                <div className="shrink-0"><Status value={transaction.status}/></div>
+                            </div>
+                            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 text-sm">
+                                <div className="min-w-0">
+                                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Type</dt>
+                                    <dd className="mt-1 break-words">{transaction.transactionType}</dd>
+                                </div>
+                                <div className="min-w-0">
+                                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Amount</dt>
+                                    <dd className={`mt-1 break-words font-extrabold ${transaction.transactionType === 'PAYMENT' ? 'text-pastel_mauve_5-200 dark:text-lavender_purple-600' : 'text-rose-600'}`}>
+                                        {money(transaction.amount)}
+                                    </dd>
+                                </div>
+                                <div className="min-w-0">
+                                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Category</dt>
+                                    <dd className="mt-1 break-words">{transaction.categoryId?.name || '-'}</dd>
+                                </div>
+                                <div className="min-w-0">
+                                    <dt className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Date</dt>
+                                    <dd className="mt-1 break-words">{dateTime(transaction.createdAt)}</dd>
+                                </div>
+                            </dl>
+                        </article>)}
+                    </div>
+                    <div className="hidden overflow-x-auto xl:block">
+                        <table className="w-full">
+                            <thead>
+                            <tr>
+                                <th className="th">ID / Date</th>
+                                <th className="th">Type</th>
+                                <th className="th">Category</th>
+                                <th className="th">Amount</th>
+                                <th className="th">Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>{transactions.map(transaction => <tr key={transaction._id}>
+                                <td className="td"><b>{transaction.transactionCode}</b>
+                                    <small className="block text-slate-500">{dateTime(transaction.createdAt)}</small>
+                                </td>
+                                <td className="td">{transaction.transactionType}</td>
+                                <td className="td">{transaction.categoryId?.name || '-'}</td>
+                                <td className={`td font-bold ${transaction.transactionType === 'PAYMENT' ? 'text-pastel_mauve_5-200 dark:text-lavender_purple-600' : 'text-rose-600'}`}>
+                                    {money(transaction.amount)}
+                                </td>
+                                <td className="td"><Status value={transaction.status}/></td>
+                            </tr>)}</tbody>
+                        </table>
+                    </div>
+                </>}
         </div>
 
         {user?.role === 'ADMIN' && <div className="card mt-4 border-red-200">
